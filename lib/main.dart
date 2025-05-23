@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Optionnel, pour un meilleur style de police
+
+import 'pages/auth/screens/login_screen.dart';
+import 'pages/auth/screens/register_screen.dart';
 import 'pages/home/screens/home_screen.dart';
+import 'pages/notification/screens/notifications_screen.dart';  
+import 'pages/profile/screens/profile_screen.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -12,20 +17,64 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Course App UI',
+      title: 'Course App Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.deepOrange, // Une couleur proche du rouge/orange de l'UI
-        scaffoldBackgroundColor: const Color(0xFFFDFDFD), // Fond très clair
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme), // Police Poppins
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.black87),
-          titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w500),
+        // Vous pouvez définir un thème de base ici, qui sera hérité
+        // ou utilisé par les écrans s'ils n'ont pas leur propre thème.
+        // Par exemple, le thème de la page de connexion :
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Colors.blue.shade500),
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
         ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue.shade600, // Couleur pour login/register
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.blue.shade600,
+          ),
+        ),
+        // Si vous utilisez Google Fonts pour tout le texte :
+        // textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
-      home: const HomeScreen(),
+
+      // Définir la route initiale
+      initialRoute: '/login', // L'application commencera par l'écran de connexion
+
+      // Définir toutes les routes nommées de votre application
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/': (context) => const HomeScreen(),
+        '/profile': (context) => ProfileScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        // Vous pouvez ajouter d'autres routes ici au fur et à mesure
+        // Par exemple: '/course_details': (context) => CourseDetailsScreen(),
+      },
     );
   }
 }

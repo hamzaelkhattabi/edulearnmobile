@@ -49,7 +49,7 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // En-tête avec profil et notification
-              _buildHeader(),
+              _buildHeader(context),
               const SizedBox(height: 25),
 
               // Titre principal
@@ -81,36 +81,41 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+ // ...existing code...
+
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundImage: const AssetImage('assets/profile_avatar.png'), // REMPLACEZ par votre asset
-              onBackgroundImageError: (exception, stackTrace) {
-                // Gérer l'erreur si l'image n'est pas trouvée, par exemple en affichant des initiales
-              },
-              child: Image.asset(
-                'assets/profile_avatar.png', // Répéter ici pour le errorBuilder ou gérer autrement
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(Icons.person, size: 22); // Image de secours
-                },
+        GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/profile');
+          },
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundImage: const AssetImage('assets/profile_avatar.png'),
+                onBackgroundImageError: (exception, stackTrace) {},
+                child: Image.asset(
+                  'assets/profile_avatar.png',
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.person, size: 22);
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              "Hi, Ronnie",
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: textBlack),
-            ),
-          ],
+              const SizedBox(width: 10),
+              const Text(
+                "Hi, Ronnie",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: textBlack),
+              ),
+            ],
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.notifications_none_outlined, color: textGrey, size: 28),
           onPressed: () {
-            // Action pour les notifications
+            Navigator.pushNamed(context, '/notifications');
           },
         ),
       ],
