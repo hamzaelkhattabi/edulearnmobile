@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'pages/auth/screens/login_screen.dart';
-import 'pages/auth/screens/register_screen.dart';
+import 'package:google_fonts/google_fonts.dart'; // Optionnel, pour un meilleur style de police
+import 'pages/home/screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,52 +12,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Auth UI',
+      title: 'Course App UI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white, // Fond blanc comme dans l'image
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide(color: Colors.blue.shade500),
-          ),
-          filled: true,
-          fillColor: Colors.grey.shade50, // Léger fond gris pour les champs
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue.shade600,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.blue.shade600,
-          ),
+        primarySwatch: Colors.deepOrange, // Une couleur proche du rouge/orange de l'UI
+        scaffoldBackgroundColor: const Color(0xFFFDFDFD), // Fond très clair
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme), // Police Poppins
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: IconThemeData(color: Colors.black87),
+          titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w500),
         ),
       ),
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        // Vous pouvez ajouter une route '/home' pour après la connexion
-        // '/home': (context) => HomeScreen(),
-      },
+      home: const HomeScreen(),
     );
   }
 }
