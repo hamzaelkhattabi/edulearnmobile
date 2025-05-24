@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/certificate_model.dart';
 import '../../models/enrolled_course_model.dart';
+import '../certificate/certificate_view_screen.dart';
 
 // Utiliser les constantes de couleurs
 const Color primaryAppColor = Color(0xFFF45B69);
@@ -42,27 +43,35 @@ class ProfileScreen extends StatelessWidget {
   ];
 
   // NOUVELLES DONNÉES FACTICES POUR CERTIFICATS
+  // Dans profile_screen.dart
   final List<Certificate> userCertificates = [
     Certificate(
       courseName: "Python Fundamentals Certificate",
       issuingOrganization: "Code Academy Pro",
       dateObtained: "Oct 15, 2023",
-      certificateAsset: "assets/certificate_thumb_python.png", // REMPLACEZ
+      certificateAsset: "assets/certificate_thumb_python.png",
+      recipientName: "Ronnie Abs", // Assurez-vous que cela correspond à `userName`
+      certificateId: "CERT-PY-1023-001",
+      organizationLogoAsset: "assets/logo_code_academy.png", // REMPLACEZ
     ),
     Certificate(
       courseName: "Web Design Master Certificate",
       issuingOrganization: "Design Masters Institute",
       dateObtained: "Nov 22, 2023",
-      certificateAsset: "assets/certificate_thumb_web.png", // REMPLACEZ
+      certificateAsset: "assets/certificate_thumb_web.png",
+      recipientName: "Ronnie Abs",
+      certificateId: "CERT-WD-1123-005",
+      organizationLogoAsset: "assets/logo_design_masters.png", // REMPLACEZ
     ),
      Certificate(
       courseName: "UI/UX Specialization",
       issuingOrganization: "Creative University",
       dateObtained: "Dec 01, 2023",
-      certificateAsset: "assets/certificate_thumb_uiux.png", // REMPLACEZ
+      certificateAsset: "assets/certificate_thumb_uiux.png",
+      recipientName: "Ronnie Abs",
+      organizationLogoAsset: "assets/logo_creative_uni.png", // REMPLACEZ
     ),
   ];
-  // FIN NOUVELLES DONNÉES
 
   @override
   Widget build(BuildContext context) {
@@ -314,10 +323,11 @@ class ProfileScreen extends StatelessWidget {
             icon: const Icon(Icons.visibility_outlined, color: primaryAppColor),
             tooltip: "View Certificate",
             onPressed: () {
-              // Logique pour afficher le certificat complet
-              // Par exemple, ouvrir une nouvelle page ou un dialogue avec une image plus grande
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Viewing certificate: ${certificate.courseName}')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CertificateViewScreen(certificate: certificate),
+                ),
               );
             },
           )

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/notification/notifications_screen.dart';  
 import 'screens/profile/profile_screen.dart';
+import 'screens/quiz/quiz_list_screen.dart' show QuizListScreen;
 
 
 void main() {
@@ -20,6 +22,12 @@ class MyApp extends StatelessWidget {
       title: 'Course App Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme).copyWith(
+          // Vous pouvez personnaliser des styles spécifiques si nécessaire
+          displayLarge: GoogleFonts.poppins(textStyle: Theme.of(context).textTheme.displayLarge, fontWeight: FontWeight.bold),
+          bodyMedium: GoogleFonts.poppins(textStyle: Theme.of(context).textTheme.bodyMedium, fontSize: 16),
+          // ... et ainsi de suite pour headlineMedium, titleLarge, etc. si vous voulez des variations.
+        ),
         // Vous pouvez définir un thème de base ici, qui sera hérité
         // ou utilisé par les écrans s'ils n'ont pas leur propre thème.
         // Par exemple, le thème de la page de connexion :
@@ -72,6 +80,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/profile': (context) => ProfileScreen(),
         '/notifications': (context) => const NotificationsScreen(),
+        '/quiz_list': (context) => const QuizListScreen(),
         // Vous pouvez ajouter d'autres routes ici au fur et à mesure
         // Par exemple: '/course_details': (context) => CourseDetailsScreen(),
       },

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart'; // Assurez-vous de l'avoir dans pubspec.yaml si vous l'utilisez ici directement
+// Assurez-vous d'importer votre CourseDetailsScreen et CourseModel
+import '../../models/course_model.dart'; // Ajustez le chemin si nécessaire
+import '../courses/course_details_screen.dart'; // Ajustez le chemin vers votre course_details_screen.dart
 
-const Color primaryRed = Color(0xFFF45B69); // Rouge/rose principal de l'UI
+// ... (vos constantes de couleur existantes) ...
+const Color primaryRed = Color(0xFFF45B69);
 const Color lightPinkChipBg = Color(0xFFFDEEF0);
 const Color textBlack = Color(0xFF1F2024);
 const Color textGrey = Color(0xFF6D6D6D);
@@ -11,27 +14,34 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Données factices pour l'exemple
-    final List<Map<String, dynamic>> courses = [
-      {
-        "image": "assets/course_image_1.png", // REMPLACEZ par votre chemin d'asset
-        "title": "How to design creative patt\nin illustrator",
-        "rating": 4.8,
-        "duration": "2.4 Hrs",
-        "instructor_name": "Ronnie Abs",
-        "instructor_avatar": "assets/instructor_ronnie.png", // REMPLACEZ
-        "price": 68.99,
-      },
-      {
-        "image": "assets/course_image_2.png", // REMPLACEZ
-        "title": "About to flying with drone\nin illustrator",
-        "rating": 4.8,
-        "duration": "3.0 Hrs",
-        "instructor_name": "Jenni Pen",
-        "instructor_avatar": "assets/instructor_jenni.png", // REMPLACEZ
-        "price": 75.50,
-      },
-      // Ajoutez plus de cours ici
+    // Utilisez votre modèle CourseModel pour les données
+    final List<CourseModel> courses = [
+      CourseModel(
+        id: "course_1",
+        imageUrl: "assets/course_image_1.png",
+        title: "How to design creative patt\nin illustrator",
+        rating: 4.8,
+        duration: "2.4 Hrs",
+        instructorName: "Ronnie Abs",
+        instructorAvatar: "assets/instructor_ronnie.png",
+        price: 68.99,
+        description: "Dive deep into Illustrator to create stunning patterns. Learn from industry expert Ronnie Abs and unlock your creative potential. This course covers basics to advanced techniques.",
+        studentCount: 2150,
+        lessonCount: 15,
+      ),
+      CourseModel(
+        id: "course_2",
+        imageUrl: "assets/course_image_2.png",
+        title: "About to flying with drone\nin illustrator", // Le titre original semblait un peu étrange, ajustez si besoin
+        rating: 4.8,
+        duration: "3.0 Hrs",
+        instructorName: "Jenni Pen",
+        instructorAvatar: "assets/instructor_jenni.png",
+        price: 75.50,
+        description: "Master the art of drone videography and integrate your footage with Illustrator projects. Jenni Pen guides you through flight basics, safety, and creative editing workflows.",
+        studentCount: 1780,
+        lessonCount: 18,
+      ),
     ];
 
     final List<Map<String, dynamic>> categories = [
@@ -48,32 +58,22 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // En-tête avec profil et notification
               _buildHeader(context),
               const SizedBox(height: 25),
-
-              // Titre principal
               _buildMainTitle(),
               const SizedBox(height: 25),
-
-              // Barre de recherche et filtre
               _buildSearchBar(),
               const SizedBox(height: 20),
-
-              // Chips de sujets
               _buildSubjectChips(),
               const SizedBox(height: 30),
-
-              // Section Catégories
               _buildSectionTitle("Categories"),
               const SizedBox(height: 15),
               _buildCategoriesList(categories),
               const SizedBox(height: 30),
-
-              // Section Enroll Course
               _buildSectionTitle("Enroll Course", showSeeAll: true),
               const SizedBox(height: 15),
-              _buildCoursesList(courses),
+              // Passez le contexte à _buildCoursesList si la navigation se fait à partir de là
+              _buildCoursesList(context, courses),
             ],
           ),
         ),
@@ -81,9 +81,8 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
- // ...existing code...
-
-  Widget _buildHeader(BuildContext context) {
+  // ... (vos méthodes _buildHeader, _buildMainTitle, etc. restent les mêmes) ...
+   Widget _buildHeader(BuildContext context) { // Ajout de context ici si non déjà présent
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -106,7 +105,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               const Text(
-                "Hi, Ronnie",
+                "Hi, Ronnie", // Vous pouvez rendre cela dynamique plus tard
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: textBlack),
               ),
             ],
@@ -122,7 +121,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainTitle() {
+  Widget _buildMainTitle() { // Code existant
     return RichText(
       text: const TextSpan(
         style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: textBlack, height: 1.3),
@@ -134,7 +133,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar() { // Code existant
     return Row(
       children: [
         Expanded(
@@ -166,7 +165,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSubjectChips() {
+  Widget _buildSubjectChips() { // Code existant
     final subjects = ["Python", "Graphic Design", "Development"];
     return SizedBox(
       height: 38,
@@ -176,7 +175,7 @@ class HomeScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           return ChoiceChip(
             label: Text(subjects[index]),
-            selected: false, // Gérer la sélection si nécessaire
+            selected: false,
             onSelected: (selected) {},
             backgroundColor: lightPinkChipBg,
             labelStyle: const TextStyle(color: primaryRed, fontWeight: FontWeight.w500),
@@ -192,7 +191,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, {bool showSeeAll = false}) {
+  Widget _buildSectionTitle(String title, {bool showSeeAll = false}) { // Code existant
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -209,7 +208,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoriesList(List<Map<String, dynamic>> categories) {
+  Widget _buildCategoriesList(List<Map<String, dynamic>> categories) { // Code existant
     return SizedBox(
       height: 95,
       child: ListView.separated(
@@ -240,98 +239,113 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
- Widget _buildCoursesList(List<Map<String, dynamic>> courses) {
+
+  // MODIFICATION ICI DANS _buildCoursesList
+  Widget _buildCoursesList(BuildContext context, List<CourseModel> courses) { // Ajout du context et changement du type de la liste
     return SizedBox(
-      height: 320, // Hauteur approximative pour les cartes de cours
+      height: 320,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: courses.length,
         itemBuilder: (context, index) {
-          final course = courses[index];
-          return Card(
-            elevation: 2.0,
-            shadowColor: Colors.grey.withOpacity(0.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-            child: SizedBox( // SizedBox pour contrôler la largeur de la carte
-              width: 230, // Largeur de la carte de cours
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15.0)),
-                    child: Image.asset(
-                      course["image"],
-                      height: 130,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+          final course = courses[index]; // Maintenant c'est un objet CourseModel
+          return GestureDetector( // Ou InkWell pour un effet de splash
+            onTap: () {
+              // Navigation vers CourseDetailsScreen en passant l'objet course
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CourseDetailsScreen(course: course),
+                ),
+              );
+              // Ou si vous avez une route nommée qui gère les arguments:
+              // Navigator.pushNamed(context, '/course_details', arguments: course);
+            },
+            child: Card(
+              elevation: 2.0,
+              shadowColor: Colors.grey.withOpacity(0.2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+              child: SizedBox(
+                width: 230,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15.0)),
+                      child: Image.asset(
+                        course.imageUrl, // Utiliser course.imageUrl
                         height: 130,
-                        color: Colors.grey.shade200,
-                        child: const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 50)),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 130,
+                          color: Colors.grey.shade200,
+                          child: const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 50)),
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 18),
-                            const SizedBox(width: 4),
-                            Text("${course["rating"]}", style: TextStyle(color: textGrey.withOpacity(0.8), fontWeight: FontWeight.w500)),
-                            const Spacer(),
-                            const Icon(Icons.timer_outlined, color: textGrey, size: 16),
-                            const SizedBox(width: 4),
-                            Text(course["duration"], style: const TextStyle(color: textGrey, fontSize: 12, fontWeight: FontWeight.w500)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          course["title"],
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textBlack, height: 1.3),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 15,
-                              backgroundColor: Colors.grey.shade200,
-                              child: ClipOval(
-                                child: Image.asset(
-                                  course["instructor_avatar"],
-                                  fit: BoxFit.cover,
-                                  width: 30,
-                                  height: 30,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(Icons.person, size: 15, color: textGrey);
-                                  },
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.star, color: Colors.amber, size: 18),
+                              const SizedBox(width: 4),
+                              Text("${course.rating}", style: TextStyle(color: textGrey.withOpacity(0.8), fontWeight: FontWeight.w500)),
+                              const Spacer(),
+                              const Icon(Icons.timer_outlined, color: textGrey, size: 16),
+                              const SizedBox(width: 4),
+                              Text(course.duration, style: const TextStyle(color: textGrey, fontSize: 12, fontWeight: FontWeight.w500)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            course.title, // Utiliser course.title
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textBlack, height: 1.3),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 15,
+                                backgroundColor: Colors.grey.shade200,
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    course.instructorAvatar, // Utiliser course.instructorAvatar
+                                    fit: BoxFit.cover,
+                                    width: 30,
+                                    height: 30,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(Icons.person, size: 15, color: textGrey);
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(course["instructor_name"], style: const TextStyle(color: textGrey, fontWeight: FontWeight.w500)),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: lightPinkChipBg,
-                                borderRadius: BorderRadius.circular(20),
+                              const SizedBox(width: 8),
+                              Text(course.instructorName, style: const TextStyle(color: textGrey, fontWeight: FontWeight.w500)),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: lightPinkChipBg,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  "\$${course.price}", // Utiliser course.price
+                                  style: const TextStyle(color: primaryRed, fontWeight: FontWeight.bold),
+                                ),
                               ),
-                              child: Text(
-                                "\$${course["price"]}",
-                                style: const TextStyle(color: primaryRed, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )
-                ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
               ),
             ),
           );
