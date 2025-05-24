@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/certificate_model.dart';
+import '../../models/enrolled_course_model.dart';
 
 // Utiliser les constantes de couleurs
 const Color primaryAppColor = Color(0xFFF45B69);
@@ -9,23 +11,6 @@ const Color textDarkColor = Color(0xFF1F2024);
 const Color textGreyColor = Color(0xFF6A737D);
 const double kDefaultBorderRadius = 15.0;
 
-class EnrolledCourse {
-  final String title;
-  final String instructor;
-  final String imageUrl;
-  final int totalLessons;
-  final int completedLessons;
-
-  EnrolledCourse({
-    required this.title,
-    required this.instructor,
-    required this.imageUrl,
-    required this.totalLessons,
-    required this.completedLessons,
-  });
-
-  double get progress => (completedLessons / totalLessons);
-}
 
 class ProfileScreen extends StatelessWidget {
   ProfileScreen({super.key});
@@ -56,6 +41,29 @@ class ProfileScreen extends StatelessWidget {
         completedLessons: 25),
   ];
 
+  // NOUVELLES DONNÉES FACTICES POUR CERTIFICATS
+  final List<Certificate> userCertificates = [
+    Certificate(
+      courseName: "Python Fundamentals Certificate",
+      issuingOrganization: "Code Academy Pro",
+      dateObtained: "Oct 15, 2023",
+      certificateAsset: "assets/certificate_thumb_python.png", // REMPLACEZ
+    ),
+    Certificate(
+      courseName: "Web Design Master Certificate",
+      issuingOrganization: "Design Masters Institute",
+      dateObtained: "Nov 22, 2023",
+      certificateAsset: "assets/certificate_thumb_web.png", // REMPLACEZ
+    ),
+     Certificate(
+      courseName: "UI/UX Specialization",
+      issuingOrganization: "Creative University",
+      dateObtained: "Dec 01, 2023",
+      certificateAsset: "assets/certificate_thumb_uiux.png", // REMPLACEZ
+    ),
+  ];
+  // FIN NOUVELLES DONNÉES
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,23 +71,28 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: lightBackground,
         elevation: 0,
-         leading: Padding(
+        leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: InkWell(
-            onTap: () => Navigator.pop(context), // Ou action différente si c'est un onglet principal
+            onTap: () => Navigator.pop(context),
             child: Container(
-              decoration: BoxDecoration(
-                color: cardBackgroundColor,
-                shape: BoxShape.circle,
-                 boxShadow: [ BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3,) ]
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: textDarkColor, size: 20),
-            ),
+                decoration: BoxDecoration(
+                    color: cardBackgroundColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 1,
+                          blurRadius: 3)
+                    ]),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: textDarkColor, size: 20)),
           ),
         ),
         title: Text(
           "My Profile",
-          style: GoogleFonts.poppins(color: textDarkColor, fontWeight: FontWeight.w600, fontSize: 18),
+          style: GoogleFonts.poppins(
+              color: textDarkColor, fontWeight: FontWeight.w600, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
@@ -102,6 +115,11 @@ class ProfileScreen extends StatelessWidget {
             _buildSectionTitle("My Enrolled Courses"),
             const SizedBox(height: 16),
             _buildEnrolledCoursesList(),
+            const SizedBox(height: 30), // Espace avant la nouvelle section
+            _buildSectionTitle("My Certificates"), // NOUVELLE SECTION
+            const SizedBox(height: 16),
+            _buildCertificatesList(), // NOUVELLE LISTE
+            const SizedBox(height: 20), // Espace en bas
           ],
         ),
       ),
@@ -109,7 +127,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileHeader() {
-    return Column(
+    // ... (code inchangé)
+     return Column(
       children: [
         CircleAvatar(
           radius: 50,
@@ -132,7 +151,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Align(
+    // ... (code inchangé)
+     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
         title,
@@ -142,7 +162,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildEnrolledCoursesList() {
-    if (enrolledCourses.isEmpty) {
+    // ... (code inchangé, assurez-vous que `progress` est bien calculé)
+     if (enrolledCourses.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 30.0),
         child: Text("You haven't enrolled in any courses yet.", style: GoogleFonts.poppins(color: textGreyColor)),
@@ -200,7 +221,7 @@ class ProfileScreen extends StatelessWidget {
                             backgroundColor: primaryAppColor.withOpacity(0.2),
                             valueColor: const AlwaysStoppedAnimation<Color>(primaryAppColor),
                             minHeight: 6,
-                             borderRadius: BorderRadius.circular(3), // Flutter 3.16+
+                             borderRadius: BorderRadius.circular(3),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -224,4 +245,107 @@ class ProfileScreen extends StatelessWidget {
       },
     );
   }
+
+  // NOUVELLE MÉTHODE POUR AFFICHER LES CARTES DE CERTIFICATS
+  Widget _buildCertificateCard(BuildContext context, Certificate certificate) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: cardBackgroundColor,
+        borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 5)
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.0),
+            child: Image.asset(
+              certificate.certificateAsset, // REMPLACEZ
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: const Icon(Icons.workspace_premium_outlined,
+                    color: primaryAppColor, size: 30),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  certificate.courseName,
+                  style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: textDarkColor),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Issued by: ${certificate.issuingOrganization}",
+                  style:
+                      GoogleFonts.poppins(fontSize: 12, color: textGreyColor),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Date: ${certificate.dateObtained}",
+                  style:
+                      GoogleFonts.poppins(fontSize: 12, color: textGreyColor),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.visibility_outlined, color: primaryAppColor),
+            tooltip: "View Certificate",
+            onPressed: () {
+              // Logique pour afficher le certificat complet
+              // Par exemple, ouvrir une nouvelle page ou un dialogue avec une image plus grande
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Viewing certificate: ${certificate.courseName}')),
+              );
+            },
+          )
+        ],
+      ),
+    );
+  }
+  // FIN NOUVELLE MÉTHODE
+
+  // NOUVELLE MÉTHODE POUR CONSTRUIRE LA LISTE DES CERTIFICATS
+  Widget _buildCertificatesList() {
+    if (userCertificates.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 30.0),
+        child: Text("You haven't earned any certificates yet.",
+            style: GoogleFonts.poppins(color: textGreyColor)),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: userCertificates.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        // Passer le BuildContext à _buildCertificateCard
+        return _buildCertificateCard(context, userCertificates[index]);
+      },
+    );
+  }
+  // FIN NOUVELLE MÉTHODE
 }

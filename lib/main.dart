@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'pages/auth/screens/login_screen.dart';
-import 'pages/auth/screens/register_screen.dart';
-import 'pages/home/screens/home_screen.dart';
-import 'pages/notification/screens/notifications_screen.dart';  
-import 'pages/profile/screens/profile_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/notification/notifications_screen.dart';  
+import 'screens/profile/profile_screen.dart';
 
 
 void main() {
