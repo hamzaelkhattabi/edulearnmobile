@@ -1,48 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:share_plus/share_plus.dart'; // Ajoutez share_plus à pubspec.yaml
-
-// Importez votre modèle de certificat
-import '../../models/certificate_model.dart'; // Ajustez le chemin si nécessaire
-
-// Couleurs (vous pouvez les centraliser)
-const Color primaryAppColor = Color(0xFFF45B69);
-const Color textDarkColor = Color(0xFF1F2024);
-const Color textGreyColor = Color(0xFF6A737D);
-const Color certificateBgColor = Color(0xFFFDFBF6); // Un fond crème léger pour le certificat
-const Color certificateBorderColor = Color(0xFFEAE0C8);
+import 'package:share_plus/share_plus.dart';
+import '../../models/certificate_model.dart'; // Nouveau modèle
+import '../../utils/app_colors.dart';
 
 class CertificateViewScreen extends StatelessWidget {
-  final Certificate certificate;
+  final CertificateModel certificate; // Utilise le nouveau CertificateModel
 
   const CertificateViewScreen({super.key, required this.certificate});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, // Un fond légèrement différent de la page précédente
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: eduLearnCardBg, // Fond blanc pour cette AppBar
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textDarkColor),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: eduLearnTextBlack),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           "Certificate",
           style: GoogleFonts.poppins(
-              color: textDarkColor, fontWeight: FontWeight.w600, fontSize: 18),
+              color: eduLearnTextBlack, fontWeight: FontWeight.w600, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: primaryAppColor),
+            icon: const Icon(Icons.share_outlined, color: eduLearnPrimary),
             tooltip: "Share Certificate",
             onPressed: () {
-              // Logique de partage
               Share.share(
-                'Check out my certificate for ${certificate.courseName} from ${certificate.issuingOrganization}!',
-                subject: 'I earned a new certificate!',
+                'Check out my certificate for ${certificate.certificateName} from ${certificate.issuingOrganizationName}! Score: ${certificate.score.toInt()}%',
+                subject: 'I earned a new certificate from EduLearn!',
               );
             },
           ),
@@ -53,18 +44,14 @@ class CertificateViewScreen extends StatelessWidget {
         child: Center(
           child: Container(
             width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 450), // Max width pour une meilleure lisibilité
+            constraints: const BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
-              color: certificateBgColor,
+              color: certificateBgColor, // Couleur spécifique pour le certificat
               borderRadius: BorderRadius.circular(12.0),
               border: Border.all(color: certificateBorderColor, width: 2),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
               ],
             ),
             child: Column(
@@ -75,53 +62,59 @@ class CertificateViewScreen extends StatelessWidget {
                     certificate.organizationLogoAsset!,
                     height: 60,
                     errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.business_center_outlined, size: 40, color: textGreyColor),
+                        const Icon(Icons.business_center_outlined, size: 40, color: eduLearnTextGrey),
                   ),
                 if (certificate.organizationLogoAsset != null) const SizedBox(height: 10),
                 Text(
-                  certificate.issuingOrganization,
-                  style: GoogleFonts.merriweather( // Une police plus formelle/serif
+                  certificate.issuingOrganizationName, // Nouveau champ
+                  style: GoogleFonts.merriweather(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: textDarkColor),
+                      color: eduLearnTextBlack),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  "CERTIFICATE OF ACHIEVEMENT",
+                  "CERTIFICATE OF ${certificate.isAchieved ? 'ACHIEVEMENT' : 'PARTICIPATION'}",
                   style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: primaryAppColor,
+                      color: eduLearnPrimary,
                       letterSpacing: 1.5),
                 ),
                 const SizedBox(height: 15),
                 Text(
                   "This certifies that",
-                  style: GoogleFonts.lato(fontSize: 14, color: textGreyColor),
+                  style: GoogleFonts.lato(fontSize: 14, color: eduLearnTextGrey),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  certificate.recipientName,
+                  certificate.recipientName, // Nouveau champ
                   style: GoogleFonts.merriweather(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: textDarkColor),
+                      color: eduLearnTextBlack),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "has successfully completed the course",
-                  style: GoogleFonts.lato(fontSize: 14, color: textGreyColor),
+                  "has successfully ${certificate.isAchieved ? 'completed' : 'participated in'} the course",
+                  style: GoogleFonts.lato(fontSize: 14, color: eduLearnTextGrey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  certificate.courseName,
+                  certificate.certificateName, // Ancien courseName
                   style: GoogleFonts.merriweather(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: textDarkColor.withOpacity(0.85)),
+                      color: eduLearnTextBlack.withOpacity(0.85)),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  "Achieved Score: ${certificate.score.toInt()}%",
+                   style: GoogleFonts.lato(fontSize: 15, color: eduLearnTextBlack, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 25),
@@ -133,33 +126,35 @@ class CertificateViewScreen extends StatelessWidget {
                       children: [
                         Text(
                           "Date Issued",
-                          style: GoogleFonts.lato(fontSize: 12, color: textGreyColor),
+                          style: GoogleFonts.lato(fontSize: 12, color: eduLearnTextGrey),
                         ),
                         Text(
-                          certificate.dateObtained,
-                          style: GoogleFonts.lato(fontSize: 14, fontWeight: FontWeight.w600, color: textDarkColor),
+                          certificate.dateObtainedFormatted, // Utilise le getter formaté
+                          style: GoogleFonts.lato(fontSize: 14, fontWeight: FontWeight.w600, color: eduLearnTextBlack),
                         ),
                       ],
                     ),
-                    if (certificate.certificateId != null)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            "Certificate ID",
-                            style: GoogleFonts.lato(fontSize: 12, color: textGreyColor),
-                          ),
-                          Text(
-                            certificate.certificateId!,
-                            style: GoogleFonts.lato(fontSize: 14, fontWeight: FontWeight.w600, color: textDarkColor),
-                          ),
-                        ],
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "Certificate ID",
+                          style: GoogleFonts.lato(fontSize: 12, color: eduLearnTextGrey),
+                        ),
+                        Text(
+                          certificate.certificateNumber, // Ancien certificateId
+                          style: GoogleFonts.lato(fontSize: 14, fontWeight: FontWeight.w600, color: eduLearnTextBlack),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                // Vous pourriez ajouter un QR code ici pour vérification, ou une signature factice
-                const Icon(Icons.verified_user_outlined, size: 50, color: Colors.green)
+                Icon(
+                  certificate.isAchieved ? Icons.verified_user_outlined : Icons.hourglass_bottom_rounded,
+                  size: 50,
+                  color: certificate.isAchieved ? eduLearnSuccess : eduLearnWarning
+                )
               ],
             ),
           ),

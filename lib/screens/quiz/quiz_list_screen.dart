@@ -1,114 +1,198 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../models/quiz_models.dart'; // Ajustez le chemin
-import 'quiz_screen.dart';            // Ajustez le chemin
+import '../../models/quiz_model.dart';
+import '../../utils/app_colors.dart';
+import 'quiz_attempt_screen.dart'; // À créer
 
-// Couleurs
-const Color primaryAppColor = Color(0xFFF45B69);
-const Color textDarkColor = Color(0xFF1F2024);
-const Color lightBackground = Color(0xFFF9FAFC);
-const Color cardBackgroundColor = Colors.white;
-
-class QuizListScreen extends StatelessWidget {
+class QuizListScreen extends StatefulWidget {
   const QuizListScreen({super.key});
 
-  // Données factices pour la liste des quiz
-  // Dans une vraie app, cela viendrait d'une base de données ou d'une API
-  List<Quiz> _getAvailableQuizzes() {
-    return [
-      Quiz( // SampleQuiz1 (celui de Python)
-        id: "python_basics_01",
-        title: "Bases de Python - Quiz 1",
-        description: "Testez vos connaissances fondamentales sur Python avec 3 questions.",
-        questions: [ /* ... Définissez les questions comme dans l'exemple précédent ... */
-          QuizQuestion(id: "q_py_1", questionText: "Mot-clé fonction Python ?", type: QuestionType.singleChoice, options: [QuizOption(id:"o1", text:"def", isCorrect: true), /*...*/], explanation:"..."),
-          QuizQuestion(id: "q_py_2", questionText: "Types numériques Python ? (multi)", type: QuestionType.multipleChoice, options: [QuizOption(id:"o_py_int", text:"int", isCorrect:true), QuizOption(id:"o_py_str", text:"string"), /*...*/], explanation:"..."),
-          QuizQuestion(id: "q_py_3", questionText: "Liste Python immuable ?", type: QuestionType.trueFalse, options: [QuizOption(id:"o_tf_1", text:"Faux", isCorrect:true), QuizOption(id:"o_tf_2", text:"Vrai")], explanation:"..."),
-        ],
-      ),
-      Quiz( // SampleQuiz2
-        id: "flutter_widgets_01",
-        title: "Widgets Flutter - Quiz 1",
-        description: "Connaissez-vous bien les widgets de base de Flutter ? 2 questions.",
-        questions: [
-          QuizQuestion(
-            id: "q_fl_1",
-            questionText: "Quel widget est utilisé pour afficher une simple chaîne de texte ?",
-            type: QuestionType.singleChoice,
-            options: [
-              QuizOption(id: "fl_o1", text: "Container"),
-              QuizOption(id: "fl_o2", text: "Text", isCorrect: true),
-              QuizOption(id: "fl_o3", text: "Row"),
-            ],
-            explanation: "Le widget 'Text' est utilisé pour afficher du texte à l'écran."
-          ),
-          QuizQuestion(
-            id: "q_fl_2",
-            questionText: "`StatelessWidget` peut changer son propre état interne après sa construction.",
-            type: QuestionType.trueFalse,
-            options: [
-              QuizOption(id: "fl_tf1", text: "Vrai"),
-              QuizOption(id: "fl_tf2", text: "Faux", isCorrect: true),
-            ],
-            explanation: "Les `StatelessWidget` sont immuables après leur création. Pour un état mutable, utilisez `StatefulWidget`."
-          ),
-        ],
-      ),
-      // ... Ajoutez d'autres quiz ici ...
-    ];
-  }
+  @override
+  State<QuizListScreen> createState() => _QuizListScreenState();
+}
+
+class _QuizListScreenState extends State<QuizListScreen> {
+  // Données factices - Remplacer par une vraie source de données (API)
+  final List<QuizInfoModel> _userQuizzes = [
+    QuizInfoModel(
+      quizId: 101,
+      courseId: 1,
+      courseName: "Introduction à Python",
+      quizName: "Quiz Chapitre 1: Les Bases",
+      totalQuestions: 10,
+      description: "Testez vos connaissances sur les variables et types de données.",
+      score: 80,
+      isPassed: true,
+    ),
+    QuizInfoModel(
+      quizId: 102,
+      courseId: 1,
+      courseName: "Introduction à Python",
+      quizName: "Quiz Chapitre 2: Structures de Contrôle",
+      totalQuestions: 15,
+      description: "Évaluez votre compréhension des boucles et conditions.",
+      score: 55,
+      isPassed: false,
+    ),
+    QuizInfoModel(
+      quizId: 201,
+      courseId: 2,
+      courseName: "Design UI/UX Avancé",
+      quizName: "Module 1: Principes du Design",
+      totalQuestions: 20,
+      description: "Quiz sur les fondamentaux du design et de l'expérience utilisateur.",
+      // score et isPassed sont nuls car non tenté
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final availableQuizzes = _getAvailableQuizzes();
-
     return Scaffold(
-      backgroundColor: lightBackground,
+      backgroundColor: eduLearnBackground,
       appBar: AppBar(
-        backgroundColor: cardBackgroundColor,
-        elevation: 0.5,
-        title: Text(
-          "Liste des Quiz",
-          style: GoogleFonts.poppins(color: textDarkColor, fontWeight: FontWeight.w600),
+        backgroundColor: eduLearnBackground,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: eduLearnTextBlack),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        // Vous pourriez ajouter un bouton retour si cette page n'est pas une racine de navigation
-        // leading: IconButton(icon: Icon(Icons.arrow_back_ios_new_rounded, color: textDarkColor), onPressed: () => Navigator.pop(context)),
+        title: Text(
+          "Mes Quiz",
+          style: GoogleFonts.poppins(
+              color: eduLearnTextBlack, fontWeight: FontWeight.w600, fontSize: 18),
+        ),
+        centerTitle: true,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: availableQuizzes.length,
-        itemBuilder: (context, index) {
-          final quiz = availableQuizzes[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16.0),
-            elevation: 2.0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-              leading: CircleAvatar(
-                backgroundColor: primaryAppColor.withOpacity(0.15),
-                child: Icon(Icons.quiz_outlined, color: primaryAppColor),
+      body: _userQuizzes.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.quiz_outlined, size: 80, color: eduLearnTextGrey),
+                  const SizedBox(height: 16),
+                  Text("Aucun quiz disponible ou complété.",
+                      style: GoogleFonts.poppins(fontSize: 18, color: eduLearnTextGrey)),
+                ],
               ),
-              title: Text(
-                quiz.title,
-                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: textDarkColor),
-              ),
-              subtitle: Text(
-                quiz.description,
-                style: GoogleFonts.poppins(fontSize: 13, color: textGreyColor),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: textGreyColor, size: 18),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => QuizScreen(quiz: quiz)),
-                );
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: _userQuizzes.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final quizInfo = _userQuizzes[index];
+                return _buildQuizCard(context, quizInfo);
               },
+            ),
+    );
+  }
+
+  Widget _buildQuizCard(BuildContext context, QuizInfoModel quizInfo) {
+    bool attempted = quizInfo.score != null;
+    return Card(
+      elevation: 2.0,
+      shadowColor: Colors.grey.withOpacity(0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kDefaultBorderRadius)),
+      color: eduLearnCardBg,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+        onTap: () {
+          // Simuler le chargement des questions pour ce quiz
+          // Dans une vraie app, vous feriez un appel API ici pour getQuizByCourseId
+          // ou pour obtenir les détails complets du quiz par quizInfo.quizId
+          QuizAttemptModel quizToAttempt = QuizAttemptModel(
+            quizId: quizInfo.quizId,
+            courseId: quizInfo.courseId,
+            courseName: quizInfo.courseName,
+            quizName: quizInfo.quizName,
+            totalQuestions: quizInfo.totalQuestions,
+            description: quizInfo.description,
+            questions: List.generate(quizInfo.totalQuestions, (i) => QuizQuestionModel(
+              id: "q_${quizInfo.quizId}_$i",
+              questionText: "Ceci est la question ${i + 1} pour ${quizInfo.quizName}. Quel est votre choix?",
+              options: [
+                QuizOptionModel(text: "Option A", isCorrect: i % 4 == 0),
+                QuizOptionModel(text: "Option B", isCorrect: i % 4 == 1),
+                QuizOptionModel(text: "Option C", isCorrect: i % 4 == 2),
+                QuizOptionModel(text: "Option D", isCorrect: i % 4 == 3),
+              ],
+              explanation: "L'explication pour la question ${i + 1} serait ici."
+            ))
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => QuizAttemptScreen(quizAttempt: quizToAttempt),
             ),
           );
         },
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                quizInfo.quizName,
+                style: GoogleFonts.poppins(
+                    fontSize: 16, fontWeight: FontWeight.w600, color: eduLearnTextBlack),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Cours: ${quizInfo.courseName}",
+                style: GoogleFonts.poppins(fontSize: 13, color: eduLearnTextGrey),
+              ),
+              if (quizInfo.description != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  quizInfo.description!,
+                  style: GoogleFonts.poppins(fontSize: 13, color: eduLearnTextLightGrey),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${quizInfo.totalQuestions} Questions",
+                    style: GoogleFonts.poppins(fontSize: 12, color: eduLearnTextGrey),
+                  ),
+                  if (attempted)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: quizInfo.isPassed! ? eduLearnSuccess.withOpacity(0.1) : eduLearnError.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        quizInfo.isPassed! ? "Réussi (${quizInfo.score!.toInt()}%)" : "Échoué (${quizInfo.score!.toInt()}%)",
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: quizInfo.isPassed! ? eduLearnSuccess : eduLearnError,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: eduLearnPrimary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      child: Text(
+                        "Commencer",
+                        style: GoogleFonts.poppins(
+                            fontSize: 12, fontWeight: FontWeight.w500, color: eduLearnPrimary),
+                      ),
+                    )
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

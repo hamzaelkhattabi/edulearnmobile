@@ -1,31 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-// Utiliser les constantes de couleurs
-const Color primaryAppColor = Color(0xFFF45B69);
-const Color lightBackground = Color(0xFFF9FAFC);
-const Color cardBackgroundColor = Colors.white;
-const Color textDarkColor = Color(0xFF1F2024);
-const Color textGreyColor = Color(0xFF6A737D);
-const double kDefaultBorderRadius = 15.0;
-
-class NotificationItem {
-  final String title;
-  final String message;
-  final String timeAgo;
-  final IconData icon;
-  final Color iconBgColor;
-  bool isRead;
-
-  NotificationItem({
-    required this.title,
-    required this.message,
-    required this.timeAgo,
-    required this.icon,
-    this.iconBgColor = primaryAppColor,
-    this.isRead = false,
-  });
-}
+import '../../models/notification_item.dart'; // Import NotificationItem
+import '../../utils/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -35,77 +11,80 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  // Utiliser le modèle NotificationItem
   final List<NotificationItem> _notifications = [
     NotificationItem(
+      id: "1",
       title: "Course Update!",
-      message: "New lesson 'Advanced Python' added to your course.",
+      message: "New chapter 'Advanced Python Async' added to your 'Python Pro' course.",
       timeAgo: "5 mins ago",
-      icon: Icons.school_outlined,
+      iconData: Icons.school_outlined,
       iconBgColor: Colors.blue.shade100,
     ),
     NotificationItem(
+      id: "2",
+      title: "Quiz Reminder!",
+      message: "Don't forget to complete the quiz for 'Data Science Basics - Module 2'.",
+      timeAgo: "30 mins ago",
+      iconData: Icons.quiz_outlined,
+      iconBgColor: eduLearnPrimary.withOpacity(0.2),
+    ),
+    NotificationItem(
+      id: "3",
       title: "Promotion!",
-      message: "Get 50% off on 'Data Science Bootcamp'.",
+      message: "Get 50% off on 'Data Science Bootcamp'. Limited time offer!",
       timeAgo: "1 hr ago",
-      icon: Icons.sell_outlined,
+      iconData: Icons.sell_outlined,
       iconBgColor: Colors.green.shade100,
       isRead: true,
     ),
     NotificationItem(
-      title: "Reminder",
-      message: "Your subscription is ending soon. Renew now!",
-      timeAgo: "3 hrs ago",
-      icon: Icons.notifications_active_outlined,
-      iconBgColor: Colors.orange.shade100,
-    ),
-     NotificationItem(
-      title: "System Maintenance",
-      message: "App will be down for maintenance on 25th Dec.",
-      timeAgo: "1 day ago",
-      icon: Icons.build_circle_outlined,
-      iconBgColor: Colors.grey.shade300,
-      isRead: true,
+      id: "4",
+      title: "Certificate Earned!",
+      message: "Congratulations! You've earned a certificate for 'Python Pro'.",
+      timeAgo: "2 hrs ago",
+      iconData: Icons.workspace_premium_outlined,
+      iconBgColor: Colors.amber.shade100,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: lightBackground,
+      // backgroundColor: eduLearnBackground, // Thème global
       appBar: AppBar(
-        backgroundColor: lightBackground,
-        elevation: 0,
+        // backgroundColor: eduLearnBackground, // Thème global
+        // elevation: 0, // Thème global
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: InkWell(
             onTap: () => Navigator.pop(context),
+            customBorder: const CircleBorder(),
             child: Container(
               decoration: BoxDecoration(
-                color: cardBackgroundColor,
+                color: eduLearnCardBg,
                 shape: BoxShape.circle,
-                boxShadow: [ BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3,) ]
+                boxShadow: [ BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3) ]
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: textDarkColor, size: 20),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, color: eduLearnTextBlack, size: 20),
             ),
           ),
         ),
-        title: Text(
-          "Notifications",
-          style: GoogleFonts.poppins(color: textDarkColor, fontWeight: FontWeight.w600, fontSize: 18),
-        ),
+        title: Text("Notifications"), // Thème global
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.done_all_rounded, color: textGreyColor),
-            tooltip: "Mark all as read",
-            onPressed: () {
-              setState(() {
-                for (var notif in _notifications) {
-                  notif.isRead = true;
-                }
-              });
-            },
-          ),
+          if (_notifications.any((n) => !n.isRead)) // Afficher seulement s'il y a des non lues
+            IconButton(
+              icon: const Icon(Icons.done_all_rounded, color: eduLearnTextGrey),
+              tooltip: "Mark all as read",
+              onPressed: () {
+                setState(() {
+                  for (var notif in _notifications) {
+                    notif.isRead = true;
+                  }
+                });
+              },
+            ),
         ],
       ),
       body: _notifications.isEmpty
@@ -115,7 +94,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 children: [
                   Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.shade400),
                   const SizedBox(height: 16),
-                  Text("No notifications yet", style: GoogleFonts.poppins(fontSize: 18, color: textGreyColor)),
+                  Text("No notifications yet", style: GoogleFonts.poppins(fontSize: 18, color: eduLearnTextGrey)),
                 ],
               ),
             )
@@ -130,20 +109,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     setState(() {
                       notification.isRead = true;
                     });
-                    // TODO: Action on notification tap
+                    // TODO: Action on notification tap (ex: naviguer vers le cours, quiz, certificat)
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Notification '${notification.title}' cliquée.")));
                   },
+                  borderRadius: BorderRadius.circular(kDefaultBorderRadius),
                   child: Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: notification.isRead ? cardBackgroundColor : primaryAppColor.withOpacity(0.05),
+                      color: notification.isRead ? eduLearnCardBg : eduLearnPrimary.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-                      border: notification.isRead ? Border.all(color: Colors.grey.shade200, width: 0.8) : Border.all(color: primaryAppColor.withOpacity(0.3)),
+                      border: Border.all(
+                        color: notification.isRead ? Colors.grey.shade200 : eduLearnPrimary.withOpacity(0.3),
+                        width: 0.8
+                      ),
                       boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          spreadRadius: 1,
-                          blurRadius: 5,
-                        )
+                        BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 5)
                       ],
                     ),
                     child: Row(
@@ -151,10 +131,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: notification.iconBgColor,
+                            color: notification.iconBgColor, // Couleur spécifique à la notif
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(notification.icon, color: textDarkColor.withOpacity(0.7), size: 24),
+                          child: Icon(notification.iconData, color: eduLearnTextBlack.withOpacity(0.7), size: 24),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -166,13 +146,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: textDarkColor,
+                                  color: eduLearnTextBlack,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 notification.message,
-                                style: GoogleFonts.poppins(fontSize: 13, color: textGreyColor),
+                                style: GoogleFonts.poppins(fontSize: 13, color: eduLearnTextGrey),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -182,7 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         const SizedBox(width: 10),
                         Text(
                           notification.timeAgo,
-                          style: GoogleFonts.poppins(fontSize: 11, color: textGreyColor),
+                          style: GoogleFonts.poppins(fontSize: 11, color: eduLearnTextLightGrey),
                         ),
                       ],
                     ),

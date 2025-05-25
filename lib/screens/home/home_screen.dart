@@ -1,57 +1,67 @@
 import 'package:flutter/material.dart';
-// Assurez-vous d'importer votre CourseDetailsScreen et CourseModel
-import '../../models/course_model.dart'; // Ajustez le chemin si nécessaire
-import '../courses/course_details_screen.dart'; // Ajustez le chemin vers votre course_details_screen.dart
-
-// ... (vos constantes de couleur existantes) ...
-const Color primaryRed = Color(0xFFF45B69);
-const Color lightPinkChipBg = Color(0xFFFDEEF0);
-const Color textBlack = Color(0xFF1F2024);
-const Color textGrey = Color(0xFF6D6D6D);
+import 'package:google_fonts/google_fonts.dart';
+import '../../models/course_model.dart';
+import '../../utils/app_colors.dart' as app_colors;
+import '../courses/course_details_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
+
+  // DONNÉES FACTICES UTILISANT LES NOUVEAUX MODÈLES
+  // Normalement, ces données viendraient d'une API et seraient converties via CourseModel.fromJson
+  static final List<CourseModel> _courses = [
+    CourseModel(
+      id: 1,
+      courseName: "Développement Web Full Stack avec React & Node.js",
+      teacherId: "prof_jane_doe",
+      description: "Apprenez à construire des applications web complètes de A à Z avec les technologies les plus demandées. Ce cours couvre HTML, CSS, JavaScript, React pour le frontend, et Node.js, Express, MongoDB pour le backend.",
+      isGlobal: true,
+      chapters: [
+        ChapterModel(id: 101, title: "Introduction au HTML & CSS", order: 1, courseId: 1, durationDisplay: "45 Mins", content: "Les bases du HTML et CSS..."),
+        ChapterModel(id: 102, title: "JavaScript Fondamental", order: 2, courseId: 1, durationDisplay: "1h 15Mins", content: "Variables, fonctions, DOM...", isLocked: true),
+      ],
+      materials: [
+        MaterialModel(id: 1, fileType: "pdf", path: "slides_intro.pdf", courseId: 1),
+      ],
+      imageUrl: "assets/course_image_1.png", // Assurez-vous que cet asset existe
+      instructorName: "Jane Doe",
+      instructorAvatar: "assets/instructor_jenni.png", // Assurez-vous que cet asset existe
+      rating: 4.9,
+      durationTotal: "45 Heures",
+      studentCount: 3250,
+      price: 89.99,
+    ),
+    CourseModel(
+      id: 2,
+      courseName: "Design UI/UX pour Applications Mobiles",
+      teacherId: "prof_john_smith",
+      description: "Maîtrisez les principes du design d'interface et d'expérience utilisateur pour créer des applications mobiles intuitives et esthétiques. Figma, prototypage, tests utilisateurs.",
+      isGlobal: true,
+      chapters: [
+        ChapterModel(id: 201, title: "Principes du Design UI", order: 1, courseId: 2, durationDisplay: "30 Mins", content: "Grilles, typographie, couleurs..."),
+        ChapterModel(id: 202, title: "Introduction à Figma", order: 2, courseId: 2, durationDisplay: "1h", content: "Outils de base, composants...", isLocked: false),
+      ],
+      imageUrl: "assets/course_image_2.png", // Assurez-vous que cet asset existe
+      instructorName: "John Smith",
+      instructorAvatar: "assets/instructor_ronnie.png", // Assurez-vous que cet asset existe
+      rating: 4.7,
+      durationTotal: "30 Heures",
+      studentCount: 1890,
+      price: 65.00,
+    ),
+  ];
+
+  final List<Map<String, dynamic>> _categories = [
+    {"icon": Icons.palette_outlined, "name": "Arts", "color": Colors.orangeAccent.shade100.withOpacity(0.6)},
+    {"icon": Icons.design_services_outlined, "name": "Design", "color": Colors.purpleAccent.shade100.withOpacity(0.6)},
+    {"icon": Icons.campaign_outlined, "name": "Marketing", "color": Colors.pinkAccent.shade100.withOpacity(0.6)}, // Icône changée
+    {"icon": Icons.code_outlined, "name": "Coding", "color": Colors.lightBlueAccent.shade100.withOpacity(0.6)},
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // Utilisez votre modèle CourseModel pour les données
-    final List<CourseModel> courses = [
-      CourseModel(
-        id: "course_1",
-        imageUrl: "assets/course_image_1.png",
-        title: "How to design creative patt\nin illustrator",
-        rating: 4.8,
-        duration: "2.4 Hrs",
-        instructorName: "Ronnie Abs",
-        instructorAvatar: "assets/instructor_ronnie.png",
-        price: 68.99,
-        description: "Dive deep into Illustrator to create stunning patterns. Learn from industry expert Ronnie Abs and unlock your creative potential. This course covers basics to advanced techniques.",
-        studentCount: 2150,
-        lessonCount: 15,
-      ),
-      CourseModel(
-        id: "course_2",
-        imageUrl: "assets/course_image_2.png",
-        title: "About to flying with drone\nin illustrator", // Le titre original semblait un peu étrange, ajustez si besoin
-        rating: 4.8,
-        duration: "3.0 Hrs",
-        instructorName: "Jenni Pen",
-        instructorAvatar: "assets/instructor_jenni.png",
-        price: 75.50,
-        description: "Master the art of drone videography and integrate your footage with Illustrator projects. Jenni Pen guides you through flight basics, safety, and creative editing workflows.",
-        studentCount: 1780,
-        lessonCount: 18,
-      ),
-    ];
-
-    final List<Map<String, dynamic>> categories = [
-      {"icon": Icons.palette_outlined, "name": "Arts", "color": Colors.orangeAccent.shade100.withOpacity(0.6)},
-      {"icon": Icons.design_services_outlined, "name": "Design", "color": Colors.purpleAccent.shade100.withOpacity(0.6)},
-      {"icon": Icons.volume_up_outlined, "name": "Marketing", "color": Colors.pinkAccent.shade100.withOpacity(0.6)},
-      {"icon": Icons.code_outlined, "name": "Coding", "color": Colors.lightBlueAccent.shade100.withOpacity(0.6)},
-    ];
-
     return Scaffold(
+      // backgroundColor: eduLearnBackground, // Thème global
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
@@ -68,12 +78,11 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 30),
               _buildSectionTitle("Categories"),
               const SizedBox(height: 15),
-              _buildCategoriesList(categories),
+              _buildCategoriesList(_categories),
               const SizedBox(height: 30),
               _buildSectionTitle("Enroll Course", showSeeAll: true),
               const SizedBox(height: 15),
-              // Passez le contexte à _buildCoursesList si la navigation se fait à partir de là
-              _buildCoursesList(context, courses),
+              _buildCoursesList(context, _courses),
             ],
           ),
         ),
@@ -81,74 +90,56 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ... (vos méthodes _buildHeader, _buildMainTitle, etc. restent les mêmes) ...
-   Widget _buildHeader(BuildContext context) { // Ajout de context ici si non déjà présent
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, '/profile');
-          },
+          onTap: () => Navigator.pushNamed(context, '/profile'),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundImage: const AssetImage('assets/profile_avatar.png'),
-                onBackgroundImageError: (exception, stackTrace) {},
-                child: Image.asset(
-                  'assets/profile_avatar.png',
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.person, size: 22);
-                  },
-                ),
+                backgroundImage: const AssetImage('assets/profile_avatar.png'), // Assurez-vous que cet asset existe
+                onBackgroundImageError: (exception, stackTrace) {}, // Gère les erreurs de chargement
+                child: Image.asset('assets/profile_avatar.png', errorBuilder: (ctx, err, st) => const Icon(Icons.person, size: 22)),
               ),
               const SizedBox(width: 10),
-              const Text(
-                "Hi, Ronnie", // Vous pouvez rendre cela dynamique plus tard
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: textBlack),
+              Text(
+                "Hi, Hamza", // TODO: Rendre dynamique
+                style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w500, color: app_colors.eduLearnTextBlack),
               ),
             ],
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.notifications_none_outlined, color: textGrey, size: 28),
-          onPressed: () {
-            Navigator.pushNamed(context, '/notifications');
-          },
+          icon: Icon(Icons.notifications_none_outlined, color: app_colors.eduLearnTextGrey, size: 28),
+          onPressed: () => Navigator.pushNamed(context, '/notifications'),
         ),
       ],
     );
   }
 
-  Widget _buildMainTitle() { // Code existant
+  Widget _buildMainTitle() {
     return RichText(
-      text: const TextSpan(
-        style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: textBlack, height: 1.3),
+      text: TextSpan(
+        style: GoogleFonts.poppins(fontSize: 30, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack, height: 1.3),
         children: <TextSpan>[
-          TextSpan(text: 'Find a course you\n'),
-          TextSpan(text: 'want to learn.', style: TextStyle(color: primaryRed)),
+          const TextSpan(text: 'Find a course\n'),
+          TextSpan(text: 'you want to learn.', style: TextStyle(color: app_colors.eduLearnPrimary)),
         ],
       ),
     );
   }
 
-  Widget _buildSearchBar() { // Code existant
+  Widget _buildSearchBar() {
     return Row(
       children: [
         Expanded(
           child: TextField(
-            decoration: InputDecoration(
+            decoration: InputDecoration( // Utilise le thème global
               hintText: 'Search for course...',
-              hintStyle: TextStyle(color: Colors.grey.shade500),
-              prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide.none,
-              ),
+              prefixIcon: Icon(Icons.search, color: app_colors.eduLearnTextGrey.withOpacity(0.7)),
             ),
           ),
         ),
@@ -156,8 +147,8 @@ class HomeScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: primaryRed,
-            borderRadius: BorderRadius.circular(12.0),
+            color: app_colors.eduLearnPrimary,
+            borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius),
           ),
           child: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 26),
         ),
@@ -165,25 +156,20 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSubjectChips() { // Code existant
-    final subjects = ["Python", "Graphic Design", "Development"];
+  Widget _buildSubjectChips() {
+    final subjects = ["Python", "Graphic Design", "Development", "Marketing"];
     return SizedBox(
-      height: 38,
+      height: 42, // Augmenté un peu pour le padding des chips
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: subjects.length,
         itemBuilder: (context, index) {
-          return ChoiceChip(
+          return ChoiceChip( // Utilise le thème global ChipTheme
             label: Text(subjects[index]),
-            selected: false,
-            onSelected: (selected) {},
-            backgroundColor: lightPinkChipBg,
-            labelStyle: const TextStyle(color: primaryRed, fontWeight: FontWeight.w500),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(color: Colors.pink.shade100, width: 0.5)
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            selected: index == 0, // Exemple: premier chip sélectionné
+            onSelected: (selected) {
+              // TODO: Logique de filtrage par sujet
+            },
           );
         },
         separatorBuilder: (context, index) => const SizedBox(width: 10),
@@ -191,45 +177,51 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, {bool showSeeAll = false}) { // Code existant
+  Widget _buildSectionTitle(String title, {bool showSeeAll = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: textBlack),
+          style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack),
         ),
         if (showSeeAll)
-          Text(
-            "See all",
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+          TextButton( // Utilisation de TextButton pour une meilleure sémantique
+            onPressed: () {
+              // TODO: Naviguer vers la page "See All"
+            },
+            child: Text(
+              "See all",
+              style: GoogleFonts.poppins(fontSize: 14, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500),
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildCategoriesList(List<Map<String, dynamic>> categories) { // Code existant
+  Widget _buildCategoriesList(List<Map<String, dynamic>> categories) {
     return SizedBox(
-      height: 95,
+      height: 100, // Légèrement augmenté pour le texte
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
         itemBuilder: (context, index) {
           final category = categories[index];
           return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18), // Augmenté pour une icône plus grande
                 decoration: BoxDecoration(
                   color: category["color"],
                   shape: BoxShape.circle,
                 ),
-                child: Icon(category["icon"], color: Colors.black87.withOpacity(0.7), size: 28),
+                child: Icon(category["icon"], color: app_colors.eduLearnTextBlack.withOpacity(0.7), size: 30), // Plus grande
               ),
               const SizedBox(height: 8),
               Text(
                 category["name"],
-                style: TextStyle(fontSize: 13, color: textGrey, fontWeight: FontWeight.w500),
+                style: GoogleFonts.poppins(fontSize: 13, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500),
               ),
             ],
           );
@@ -239,48 +231,43 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-
-  // MODIFICATION ICI DANS _buildCoursesList
-  Widget _buildCoursesList(BuildContext context, List<CourseModel> courses) { // Ajout du context et changement du type de la liste
+  Widget _buildCoursesList(BuildContext context, List<CourseModel> courses) {
     return SizedBox(
-      height: 320,
+      height: 320, // Maintenu
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: courses.length,
         itemBuilder: (context, index) {
-          final course = courses[index]; // Maintenant c'est un objet CourseModel
-          return GestureDetector( // Ou InkWell pour un effet de splash
+          final course = courses[index];
+          return GestureDetector(
             onTap: () {
-              // Navigation vers CourseDetailsScreen en passant l'objet course
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => CourseDetailsScreen(course: course),
                 ),
               );
-              // Ou si vous avez une route nommée qui gère les arguments:
-              // Navigator.pushNamed(context, '/course_details', arguments: course);
             },
-            child: Card(
+            child: Card( // Utilisation de Card pour l'élévation et la forme
               elevation: 2.0,
               shadowColor: Colors.grey.withOpacity(0.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-              child: SizedBox(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius)),
+              child: SizedBox( // Conteneur pour la largeur de la carte
                 width: 230,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15.0)),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(app_colors.kDefaultBorderRadius)),
                       child: Image.asset(
-                        course.imageUrl, // Utiliser course.imageUrl
+                        course.imageUrl,
                         height: 130,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
                           height: 130,
                           color: Colors.grey.shade200,
-                          child: const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 50)),
+                          child: const Center(child: Icon(Icons.school_outlined, color: Colors.grey, size: 50)),
                         ),
                       ),
                     ),
@@ -293,17 +280,17 @@ class HomeScreen extends StatelessWidget {
                             children: [
                               const Icon(Icons.star, color: Colors.amber, size: 18),
                               const SizedBox(width: 4),
-                              Text("${course.rating}", style: TextStyle(color: textGrey.withOpacity(0.8), fontWeight: FontWeight.w500)),
+                              Text("${course.rating}", style: GoogleFonts.poppins(color: app_colors.eduLearnTextGrey.withOpacity(0.8), fontWeight: FontWeight.w500)),
                               const Spacer(),
-                              const Icon(Icons.timer_outlined, color: textGrey, size: 16),
+                              Icon(Icons.timer_outlined, color: app_colors.eduLearnTextGrey, size: 16),
                               const SizedBox(width: 4),
-                              Text(course.duration, style: const TextStyle(color: textGrey, fontSize: 12, fontWeight: FontWeight.w500)),
+                              Text(course.durationTotal.split(" ").first, style: GoogleFonts.poppins(fontSize: 12, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500)), // Afficher que le nombre d'heures
                             ],
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            course.title, // Utiliser course.title
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textBlack, height: 1.3),
+                            course.courseName, // Utiliser courseName
+                            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack, height: 1.3),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -315,28 +302,24 @@ class HomeScreen extends StatelessWidget {
                                 backgroundColor: Colors.grey.shade200,
                                 child: ClipOval(
                                   child: Image.asset(
-                                    course.instructorAvatar, // Utiliser course.instructorAvatar
-                                    fit: BoxFit.cover,
-                                    width: 30,
-                                    height: 30,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(Icons.person, size: 15, color: textGrey);
-                                    },
+                                    course.instructorAvatar,
+                                    fit: BoxFit.cover, width: 30, height: 30,
+                                    errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 15, color: app_colors.eduLearnTextGrey),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(course.instructorName, style: const TextStyle(color: textGrey, fontWeight: FontWeight.w500)),
-                              const Spacer(),
+                              Expanded(child: Text(course.instructorName, style: GoogleFonts.poppins(color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis,)),
+                              const SizedBox(width: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: lightPinkChipBg,
+                                  color: app_colors.eduLearnAccent,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  "\$${course.price}", // Utiliser course.price
-                                  style: const TextStyle(color: primaryRed, fontWeight: FontWeight.bold),
+                                  "\$${course.price.toStringAsFixed(2)}",
+                                  style: GoogleFonts.poppins(color: app_colors.eduLearnPrimary, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],

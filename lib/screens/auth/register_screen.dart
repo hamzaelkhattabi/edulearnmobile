@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_colors.dart'; // Importation des couleurs
+// Importer les modèles Level et Speciality si vous voulez les utiliser dans des dropdowns
+// import '../../models/level_model.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -9,17 +12,24 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  // Potentiellement des contrôleurs pour dob, level, speciality
+  // LevelModel? _selectedLevel;
+  // SpecialityModel? _selectedSpeciality;
+  // List<LevelModel> _levels = []; // À charger depuis une API
+  // List<SpecialityModel> _specialities = []; // À charger en fonction du niveau
+
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-
   @override
   void dispose() {
-    _usernameController.dispose();
+    _fullNameController.dispose();
+    _userNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -28,179 +38,147 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _register() {
     if (_formKey.currentState!.validate()) {
-      // Logique d'inscription ici
-      String username = _usernameController.text;
-      String email = _emailController.text;
-      String password = _passwordController.text;
-      print('Register attempt with Username: $username, Email: $email, Password: $password');
-      // Par exemple, naviguer vers la page de connexion ou d'accueil
-      // Navigator.pushReplacementNamed(context, '/login');
+      // TODO: Implémenter la logique d'enregistrement
+      // Utiliser les données des contrôleurs:
+      // String fullName = _fullNameController.text;
+      // String userName = _userNameController.text;
+      // String email = _emailController.text;
+      // String password = _passwordController.text;
+      // ... et potentiellement level, speciality, dob
+
+      // Simuler une inscription réussie
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Inscription de $username en cours...')),
+        const SnackBar(content: Text('Inscription réussie ! Vous pouvez vous connecter.'), backgroundColor: eduLearnSuccess),
       );
+      Navigator.pop(context); // Retour à l'écran de connexion
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Sign Up'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: eduLearnTextBlack),
+        titleTextStyle: const TextStyle(color: eduLearnTextBlack, fontSize: 20, fontWeight: FontWeight.bold),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // Illustration (peut être différente pour la page d'inscription)
-              SizedBox(
-                height: 150, // Ajustez la hauteur si nécessaire
-                child: Image.asset(
-                  'assets/login_illustration.png', // Ou une autre illustration
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(Icons.person_add_alt_1_rounded, size: 100, color: Colors.blueAccent),
-                    );
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                SizedBox(
+                  height: 120, // Plus petite illustration pour l'inscription
+                  child: Image.asset(
+                    'assets/register_illustration.png', // Créez ou trouvez un asset
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(Icons.person_add_alt_1_outlined, size: 80, color: eduLearnPrimary),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _fullNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.badge_outlined, color: eduLearnPrimary),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please enter your full name';
+                    return null;
                   },
                 ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text(
-                'Sign Up',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Create an account to get started',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 30),
-
-              Form(
-                key: _formKey,
-                child: Column(
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _userNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    prefixIcon: Icon(Icons.account_circle_outlined, color: eduLearnPrimary),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please enter a username';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined, color: eduLearnPrimary),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please enter your email';
+                    if (!value.contains('@') || !value.contains('.')) return 'Enter a valid email';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: !_isPasswordVisible,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline, color: eduLearnPrimary),
+                    suffixIcon: IconButton(
+                      icon: Icon(_isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: eduLearnPrimary),
+                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please enter a password';
+                    if (value.length < 6) return 'Password must be at least 6 characters';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: !_isConfirmPasswordVisible,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    prefixIcon: const Icon(Icons.lock_reset_outlined, color: eduLearnPrimary),
+                     suffixIcon: IconButton(
+                      icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: eduLearnPrimary),
+                      onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please confirm your password';
+                    if (value != _passwordController.text) return 'Passwords do not match';
+                    return null;
+                  },
+                ),
+                // TODO: Ajouter des champs pour Date of Birth, Level, Speciality (avec DropdownButtonFormField)
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _register,
+                  child: const Text('Sign Up'),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'User name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a user name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email address',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Please enter a valid email address';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: !_isPasswordVisible,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: !_isConfirmPasswordVisible,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _isConfirmPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
+                    const Text("Already have an account? ", style: TextStyle(color: eduLearnTextGrey)),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Sign In'),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: _register,
-                child: const Text('Sign Up'),
-              ),
-              const SizedBox(height: 20),
-              // Optionnel: "Or Continue with" pour l'inscription
-              // Row(...)
-              // const SizedBox(height: 20),
-              // Row(...) pour les boutons sociaux
-
-              const SizedBox(height: 20), // Espace avant le lien de connexion
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    "Already have an account? ",
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/login');
-                    },
-                    child: const Text('Sign In'),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
