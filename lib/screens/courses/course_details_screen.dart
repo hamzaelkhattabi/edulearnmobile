@@ -201,24 +201,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   child: Text(_isEnrolled ? "Continue Learning" : "Enroll Now"),
                 ),
                 const SizedBox(height: 10),
-                 OutlinedButton(
-                  onPressed: () {
-                     // TODO: Naviguer vers l'écran de quiz pour ce cours
-                     // Cela pourrait nécessiter de passer courseId à QuizListScreen ou
-                     // directement à un écran qui charge le quiz final du cours.
-                     Navigator.push(context, MaterialPageRoute(builder: (_) => QuizListScreen()));
-                     // Alternative: si vous avez l'ID du quiz final du cours :
-                     // QuizInfoModel quizInfo = ... (construire ou récupérer l'info du quiz final)
-                     // QuizAttemptModel quizToAttempt = await _quizService.getQuizForAttempt(quizInfo.quizId);
-                     // Navigator.push(context, MaterialPageRoute(builder: (_) => QuizAttemptScreen(quizAttempt: quizToAttempt)));
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Quiz for this course TBD")));
-                  },
-                   style: OutlinedButton.styleFrom(
-                     minimumSize: const Size(double.infinity, 50),
-                     side: const BorderSide(color: eduLearnPrimary)
-                   ),
-                  child: const Text("Passer l'évaluation"),
-                ),
               ],
             ),
           ),
