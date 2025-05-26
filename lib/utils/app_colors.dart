@@ -18,3 +18,8 @@ const Color certificateBorderColor = Color(0xFFEAE0C8);
 
 // Rayon de bordure par défaut
 const double kDefaultBorderRadius = 15.0;
+
+
+// Add info colors
+const Color eduLearnInfo = Color(0xFF1976D2); // Example blue info color
+const Color eduLearnInfoDark = Color(0xFF0D47A1); // Darker blue for text

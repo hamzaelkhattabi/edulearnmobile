@@ -1,61 +1,97 @@
-import 'package:flutter/foundation.dart';
+// lib/models/certificate_model.dart
+import 'package:intl/intl.dart'; // Pour le formatage de date
 
-// Basé sur `CertificateResponse` et `Certificate` dans certificate.ts
 class CertificateModel {
-  final String id; // `id` dans le `Certificate` transformé du TS (était int pour `CertificateResponse`)
-  final String userId; // `user_id` de `CertificateResponse`
-  final String certificateName; // `certificate.certificateName`
-  final String certificateNumber; // `certificate.certificateNumber`
-  final DateTime dateIssued; // `certificate.createdAt`
-  final int? quizId; // `certificate.quiz_id`
-  final double score; // `score` de `CertificateResponse`
+  final int id; // CertificatsUtilisateur.id
+  final int userId; // CertificatsUtilisateur.utilisateur_id
+  final int certificateDefinitionId; // CertificatsUtilisateur.certificat_id (qui est Certificats.id)
+  final int courseId; // CertificatsUtilisateur.cours_id
+  final DateTime dateIssued; // CertificatsUtilisateur.date_obtention
+  final String? certificateUrl; // CertificatsUtilisateur.url_certificat_genere
 
-  // Champs spécifiques à l'UI mobile (peuvent être dérivés ou ajoutés)
-  final String issuingOrganizationName; // Non présent dans le TS, à ajouter pour l'UI
-  final String recipientName; // Nom de l'utilisateur, à obtenir séparément
-  final String? organizationLogoAsset; // Pour l'UI
-  final String certificateDisplayAsset; // Mini image pour la liste
+  // Infos venant de Certificats (via jointure ou API combinée)
+  final String certificateName; // Certificats.titre_certificat
+  final String? certificateDescription; // Certificats.description_modele
+
+  // Infos venant de User (pour recipientName) et peut-être d'ailleurs pour l'organisation
+  final String recipientName; // User.prenom + User.nom_famille
+  final String issuingOrganizationName; // À déterminer d'où ça vient (peut-être fixe par plateforme ou par cours)
+  final String? organizationLogoAsset; // Logo fixe pour la plateforme? Ou par cours?
+  final String? certificateDisplayAsset; // Petite image pour la liste
+
+  // Champs liés au quiz si applicable (pas directement dans CertificatsUtilisateur)
+  final int? quizId;
+  final double? score; // Score du quiz qui a mené au certificat
 
   CertificateModel({
     required this.id,
     required this.userId,
-    required this.certificateName,
-    required this.certificateNumber,
+    required this.certificateDefinitionId,
+    required this.courseId,
     required this.dateIssued,
-    this.quizId,
-    required this.score,
-    // UI specific
-    required this.issuingOrganizationName,
+    this.certificateUrl,
+    required this.certificateName,
+    this.certificateDescription,
     required this.recipientName,
-    this.organizationLogoAsset,
-    required this.certificateDisplayAsset,
+    required this.issuingOrganizationName,
+    this.organizationLogoAsset = "assets/logo_edulearn.png", // Valeur par défaut
+    this.certificateDisplayAsset = "assets/certificate_thumb_default.png", // Valeur par défaut
+    this.quizId,
+    this.score,
   });
 
-  String get dateObtainedFormatted {
-    // Formatter la date comme "Oct 15, 2023"
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return "${monthNames[dateIssued.month - 1]} ${dateIssued.day}, ${dateIssued.year}";
-  }
+  // lib/models/certificate_model.dart
+  // lib/models/certificate_model.dart
+  factory CertificateModel.fromJson(Map<String, dynamic> json) {
+    // Accéder à l'objet User via la clé de l'alias "utilisateur"
+    String prenom = json['utilisateur']?['prenom']?.toString() ?? '';
+    String nomFamille = json['utilisateur']?['nom_famille']?.toString() ?? '';
+    String nomUtilisateurFallback = json['utilisateur']?['nom_utilisateur']?.toString() ?? '';
 
-  bool get isAchieved => score >= 70; // Seuil de réussite, similaire à `status` dans TS
+    String recipientFullName = '${prenom} ${nomFamille}'.trim();
+    if (recipientFullName.isEmpty) {
+      recipientFullName = nomUtilisateurFallback.isNotEmpty ? nomUtilisateurFallback : (json['recipient_name_fallback']?.toString() ?? 'Utilisateur EduLearn');
+    }
 
-  // Si vous voulez un factory constructor depuis un JSON
-  // Cela nécessiterait d'aplatir la structure de CertificateResponse
-  factory CertificateModel.fromWebResponse(Map<String, dynamic> json, String currentUserName) {
-    final certData = json['certificate'] as Map<String, dynamic>;
+    // ... (le reste du parsing pour score, etc. que nous avions déjà vu)
+
+    // Accéder aux données des modèles joints via leurs noms de modèle (si pas d'alias dans include)
+    // OU via leurs alias si vous en avez défini dans le 'include' du contrôleur.
+    // Pour Certificate et Course, si vous n'avez PAS mis d'alias explicite dans le 'include':
+    String certificateTitle = json['Certificat']?['titre_certificat']?.toString() ?? 'Certificat Inconnu';
+    String certificateDesc = json['Certificate']?['description_modele'] ?? ''; // Ou une valeur par défaut
+
+    // Pour 'issuingOrganizationName' et 'organizationLogoAsset', vous devez décider de leur source.
+    // S'ils sont dans la table 'Certificats' (la définition), vous y accédez via 'Certificate'.
+    // Exemple:
+    String issuingOrg = json['Certificate']?['nom_organisation_emettrice'] ?? 'EduLearn Academy';
+    String logoAsset = json['Certificate']?['logo_organisation_url'] ?? 'assets/logo_edulearn.png';
+
+
     return CertificateModel(
-      id: json['id'].toString(),
-      userId: json['user_id'],
-      certificateName: certData['certificateName'],
-      certificateNumber: certData['certificateNumber'],
-      dateIssued: DateTime.parse(certData['createdAt']),
-      quizId: certData['quiz_id'],
-      score: (json['score'] as num).toDouble(),
-      // UI specific - Mettez des valeurs par défaut ou cherchez-les si disponibles
-      issuingOrganizationName: "EduLearn Platform", // Placeholder
-      recipientName: currentUserName,
-      organizationLogoAsset: 'assets/logo_edulearn.png', // Placeholder
-      certificateDisplayAsset: 'assets/certificate_thumb_default.png', // Placeholder
+      id: json['id'], // ID de CertificatsUtilisateur
+      userId: json['utilisateur_id'],
+      certificateDefinitionId: json['certificat_id'],
+      courseId: json['cours_id'],
+      dateIssued: DateTime.parse(json['date_obtention']),
+      certificateUrl: json['url_certificat_genere'],
+      
+      certificateName: certificateTitle,
+      certificateDescription: certificateDesc,
+      
+      recipientName: recipientFullName, // Maintenant, cela devrait utiliser l'alias "utilisateur"
+      
+      issuingOrganizationName: issuingOrg,
+      organizationLogoAsset: logoAsset,
+      certificateDisplayAsset: json['certificate_display_asset'] ?? 'assets/certificate_thumb_default.png',
+                            
+      quizId: json['Quiz']?['id'], 
+      score: (json['QuizAttempt']?['score_obtenu'] as num?)?.toDouble(), 
     );
+  }  String get dateObtainedFormatted {
+    return DateFormat('dd MMMM yyyy', 'fr_FR').format(dateIssued);
   }
+
+  // Remplacer par une logique dynamique si score vient de l'API
+  bool get isAchieved => (score ?? 0) >= 70.0; // Seuil de réussite générique, adapter si besoin
 }

@@ -1,89 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../models/quiz_model.dart';
+import '../../models/quiz_models.dart'; // Contient QuizInfoModel et QuizAttemptModel
 import '../../utils/app_colors.dart';
-import 'quiz_attempt_screen.dart'; // À créer
+import '../../services/quiz_service.dart';
+import 'quiz_attempt_screen.dart';
 
 class QuizListScreen extends StatefulWidget {
-  const QuizListScreen({super.key});
+  final int? courseId; // Optionnel, si on affiche les quiz d'un cours spécifique
+
+  const QuizListScreen({super.key, this.courseId});
 
   @override
   State<QuizListScreen> createState() => _QuizListScreenState();
 }
 
 class _QuizListScreenState extends State<QuizListScreen> {
-  // Données factices - Remplacer par une vraie source de données (API)
-  final List<QuizInfoModel> _userQuizzes = [
-    QuizInfoModel(
-      quizId: 101,
-      courseId: 1,
-      courseName: "Introduction à Python",
-      quizName: "Quiz Chapitre 1: Les Bases",
-      totalQuestions: 10,
-      description: "Testez vos connaissances sur les variables et types de données.",
-      score: 80,
-      isPassed: true,
-    ),
-    QuizInfoModel(
-      quizId: 102,
-      courseId: 1,
-      courseName: "Introduction à Python",
-      quizName: "Quiz Chapitre 2: Structures de Contrôle",
-      totalQuestions: 15,
-      description: "Évaluez votre compréhension des boucles et conditions.",
-      score: 55,
-      isPassed: false,
-    ),
-    QuizInfoModel(
-      quizId: 201,
-      courseId: 2,
-      courseName: "Design UI/UX Avancé",
-      quizName: "Module 1: Principes du Design",
-      totalQuestions: 20,
-      description: "Quiz sur les fondamentaux du design et de l'expérience utilisateur.",
-      // score et isPassed sont nuls car non tenté
-    ),
-  ];
+  final QuizService _quizService = QuizService();
+  Future<List<QuizInfoModel>>? _quizzesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuizzes();
+  }
+
+  void _loadQuizzes() {
+    setState(() {
+      _quizzesFuture = _quizService.getUserQuizzes(courseId: widget.courseId);
+    });
+  }
+
+  Future<void> _navigateToQuizAttempt(QuizInfoModel quizInfo) async {
+    try {
+      // Afficher un indicateur de chargement pendant que les questions du quiz sont récupérées
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Chargement du quiz..."), duration: Duration(seconds: 1))
+      );
+
+      // Obtenir les détails complets du quiz (avec questions) pour la tentative
+      QuizAttemptModel quizToAttempt = await _quizService.getQuizForAttempt(quizInfo.quizId);
+
+      if (mounted) { // Vérifier si le widget est toujours monté
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => QuizAttemptScreen(quizAttemptInput: quizToAttempt),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur de chargement du quiz: ${e.toString()}"), backgroundColor: eduLearnError),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: eduLearnBackground,
       appBar: AppBar(
-        backgroundColor: eduLearnBackground,
-        elevation: 0,
+        // backgroundColor: eduLearnBackground, // Utilise le thème global
+        // elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: eduLearnTextBlack),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          "Mes Quiz",
-          style: GoogleFonts.poppins(
-              color: eduLearnTextBlack, fontWeight: FontWeight.w600, fontSize: 18),
+          widget.courseId != null ? "Quiz du Cours" : "Mes Quiz",
+          // style: GoogleFonts.poppins(color: eduLearnTextBlack, fontWeight: FontWeight.w600, fontSize: 18), // Theme gère
         ),
         centerTitle: true,
       ),
-      body: _userQuizzes.isEmpty
-          ? Center(
+      body: FutureBuilder<List<QuizInfoModel>>(
+        future: _quizzesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+                child: Text("Erreur: ${snapshot.error}",
+                    style: GoogleFonts.poppins(color: eduLearnTextGrey)));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.quiz_outlined, size: 80, color: eduLearnTextGrey),
                   const SizedBox(height: 16),
-                  Text("Aucun quiz disponible ou complété.",
+                  Text("Aucun quiz disponible.",
                       style: GoogleFonts.poppins(fontSize: 18, color: eduLearnTextGrey)),
                 ],
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: _userQuizzes.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final quizInfo = _userQuizzes[index];
-                return _buildQuizCard(context, quizInfo);
-              },
-            ),
+            );
+          }
+
+          final quizzes = snapshot.data!;
+          return ListView.separated(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: quizzes.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final quizInfo = quizzes[index];
+              return _buildQuizCard(context, quizInfo);
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -96,37 +121,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
       color: eduLearnCardBg,
       child: InkWell(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        onTap: () {
-          // Simuler le chargement des questions pour ce quiz
-          // Dans une vraie app, vous feriez un appel API ici pour getQuizByCourseId
-          // ou pour obtenir les détails complets du quiz par quizInfo.quizId
-          QuizAttemptModel quizToAttempt = QuizAttemptModel(
-            quizId: quizInfo.quizId,
-            courseId: quizInfo.courseId,
-            courseName: quizInfo.courseName,
-            quizName: quizInfo.quizName,
-            totalQuestions: quizInfo.totalQuestions,
-            description: quizInfo.description,
-            questions: List.generate(quizInfo.totalQuestions, (i) => QuizQuestionModel(
-              id: "q_${quizInfo.quizId}_$i",
-              questionText: "Ceci est la question ${i + 1} pour ${quizInfo.quizName}. Quel est votre choix?",
-              options: [
-                QuizOptionModel(text: "Option A", isCorrect: i % 4 == 0),
-                QuizOptionModel(text: "Option B", isCorrect: i % 4 == 1),
-                QuizOptionModel(text: "Option C", isCorrect: i % 4 == 2),
-                QuizOptionModel(text: "Option D", isCorrect: i % 4 == 3),
-              ],
-              explanation: "L'explication pour la question ${i + 1} serait ici."
-            ))
-          );
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => QuizAttemptScreen(quizAttempt: quizToAttempt),
-            ),
-          );
-        },
+        onTap: () => _navigateToQuizAttempt(quizInfo),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -142,7 +137,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 "Cours: ${quizInfo.courseName}",
                 style: GoogleFonts.poppins(fontSize: 13, color: eduLearnTextGrey),
               ),
-              if (quizInfo.description != null) ...[
+              if (quizInfo.description != null && quizInfo.description!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
                   quizInfo.description!,
@@ -159,7 +154,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     "${quizInfo.totalQuestions} Questions",
                     style: GoogleFonts.poppins(fontSize: 12, color: eduLearnTextGrey),
                   ),
-                  if (attempted)
+                  if (attempted && quizInfo.isPassed != null)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -183,7 +178,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                       child: Text(
-                        "Commencer",
+                        attempted ? "Refaire" : "Commencer", // Si déjà tenté mais isPassed est null (cas étrange), ou "Refaire"
                         style: GoogleFonts.poppins(
                             fontSize: 12, fontWeight: FontWeight.w500, color: eduLearnPrimary),
                       ),

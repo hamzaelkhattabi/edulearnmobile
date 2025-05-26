@@ -1,96 +1,181 @@
+// lib/screens/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart'; // À utiliser si vous avez un AuthProvider
+
 import '../../models/course_model.dart';
-import '../../utils/app_colors.dart' as app_colors;
+import '../../models/category_model.dart';
+import '../../models/user_model.dart';
+import '../../services/course_service.dart';
+import '../../services/category_service.dart';
+import '../../services/auth_service.dart'; // Utilisé pour charger l'utilisateur si pas via Provider
+import '../../utils/api_constants.dart'; // Pour construire les URLs d'images
+import '../../utils/app_colors.dart' as app_colors; // Pour éviter les conflits de noms
+
+// Assurez-vous que ce chemin est correct ou créez cet écran si besoin
 import '../courses/course_details_screen.dart';
+// import '../../providers/auth_provider.dart'; // Décommentez si vous utilisez un AuthProvider
 
-class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
-  // DONNÉES FACTICES UTILISANT LES NOUVEAUX MODÈLES
-  // Normalement, ces données viendraient d'une API et seraient converties via CourseModel.fromJson
-  static final List<CourseModel> _courses = [
-    CourseModel(
-      id: 1,
-      courseName: "Développement Web Full Stack avec React & Node.js",
-      teacherId: "prof_jane_doe",
-      description: "Apprenez à construire des applications web complètes de A à Z avec les technologies les plus demandées. Ce cours couvre HTML, CSS, JavaScript, React pour le frontend, et Node.js, Express, MongoDB pour le backend.",
-      isGlobal: true,
-      chapters: [
-        ChapterModel(id: 101, title: "Introduction au HTML & CSS", order: 1, courseId: 1, durationDisplay: "45 Mins", content: "Les bases du HTML et CSS..."),
-        ChapterModel(id: 102, title: "JavaScript Fondamental", order: 2, courseId: 1, durationDisplay: "1h 15Mins", content: "Variables, fonctions, DOM...", isLocked: true),
-      ],
-      materials: [
-        MaterialModel(id: 1, fileType: "pdf", path: "slides_intro.pdf", courseId: 1),
-      ],
-      imageUrl: "assets/course_image_1.png", // Assurez-vous que cet asset existe
-      instructorName: "Jane Doe",
-      instructorAvatar: "assets/instructor_jenni.png", // Assurez-vous que cet asset existe
-      rating: 4.9,
-      durationTotal: "45 Heures",
-      studentCount: 3250,
-      price: 89.99,
-    ),
-    CourseModel(
-      id: 2,
-      courseName: "Design UI/UX pour Applications Mobiles",
-      teacherId: "prof_john_smith",
-      description: "Maîtrisez les principes du design d'interface et d'expérience utilisateur pour créer des applications mobiles intuitives et esthétiques. Figma, prototypage, tests utilisateurs.",
-      isGlobal: true,
-      chapters: [
-        ChapterModel(id: 201, title: "Principes du Design UI", order: 1, courseId: 2, durationDisplay: "30 Mins", content: "Grilles, typographie, couleurs..."),
-        ChapterModel(id: 202, title: "Introduction à Figma", order: 2, courseId: 2, durationDisplay: "1h", content: "Outils de base, composants...", isLocked: false),
-      ],
-      imageUrl: "assets/course_image_2.png", // Assurez-vous que cet asset existe
-      instructorName: "John Smith",
-      instructorAvatar: "assets/instructor_ronnie.png", // Assurez-vous que cet asset existe
-      rating: 4.7,
-      durationTotal: "30 Heures",
-      studentCount: 1890,
-      price: 65.00,
-    ),
-  ];
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-  final List<Map<String, dynamic>> _categories = [
-    {"icon": Icons.palette_outlined, "name": "Arts", "color": Colors.orangeAccent.shade100.withOpacity(0.6)},
-    {"icon": Icons.design_services_outlined, "name": "Design", "color": Colors.purpleAccent.shade100.withOpacity(0.6)},
-    {"icon": Icons.campaign_outlined, "name": "Marketing", "color": Colors.pinkAccent.shade100.withOpacity(0.6)}, // Icône changée
-    {"icon": Icons.code_outlined, "name": "Coding", "color": Colors.lightBlueAccent.shade100.withOpacity(0.6)},
-  ];
+class _HomeScreenState extends State<HomeScreen> {
+  final CourseService _courseService = CourseService();
+  final CategoryService _categoryService = CategoryService();
+  final AuthService _authService = AuthService(); // Pour le chargement initial de l'utilisateur
+
+  Future<List<CourseModel>>? _coursesFuture;
+  Future<List<CategoryModel>>? _categoriesFuture;
+  UserModel? _currentUser;
+
+  final TextEditingController _searchController = TextEditingController();
+  String? _selectedCategoryId;
+  String? _selectedSubjectFilter; // Si les sujets correspondent à des tags ou catégories spécifiques
+
+  // Sujets pour les chips - Ceux-ci pourraient aussi venir de l'API
+  // Pour l'instant, gardons-les statiques. Si dynamique, chargez-les avec un FutureBuilder.
+  final List<String> _subjects = ["Python", "Graphic Design", "Development", "Marketing", "Business"];
+  int _selectedSubjectIndex = -1; // -1 signifie aucune sélection
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    // Tenter de charger l'utilisateur depuis AuthProvider ou AuthService
+    // final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // if (authProvider.isAuthenticated && authProvider.user != null) {
+    //   if (mounted) setState(() => _currentUser = authProvider.user);
+    // } else {
+      UserModel? userFromStorage = await _authService.getCurrentUserFromStorage();
+       if (userFromStorage == null) { // Double vérification auprès de l'API
+          try {
+            userFromStorage = await _authService.getMe();
+          } catch(e) {
+            // Si getMe échoue (token invalide), rediriger vers login
+            if (mounted) Navigator.pushReplacementNamed(context, '/login');
+            return;
+          }
+       }
+      if (mounted) setState(() => _currentUser = userFromStorage);
+    // }
+
+    // Si _currentUser est null après ces tentatives, cela pourrait indiquer un problème,
+    // mais HomeScreen pourrait toujours afficher du contenu public.
+
+    _loadCategories();
+    _loadCourses(); // Charge initialement tous les cours (ou selon filtres par défaut)
+  }
+
+  void _loadCourses({String? categoryId, String? searchQuery, String? subjectFilter}) {
+    // Si on clique sur une catégorie, on met à jour _selectedCategoryId
+    if (categoryId != null) {
+      _selectedCategoryId = categoryId;
+    }
+    // si on cherche, on met à jour searchQuery (qui vient du _searchController.text)
+    // si on sélectionne un sujet, on met à jour subjectFilter
+
+    // Le CourseService devra gérer ces filtres, par exemple:
+    // L'API `/courses` peut prendre `categorie_id`, `search_term`, `tag` comme query params
+    // Ici on simplifie et on assume que categoryId est le principal filtre clair.
+    // Le searchQuery sera géré par onSubmitted du TextField.
+    // Le subjectFilter est plus conceptuel ici.
+    setState(() {
+      _coursesFuture = _courseService.getAllCourses(
+          categoryId: _selectedCategoryId, // Utilise la catégorie sélectionnée
+          searchQuery: searchQuery ?? _searchController.text,
+          // subjectFilter: subjectFilter // à implémenter si besoin
+      );
+    });
+  }
+
+  void _loadCategories() {
+    setState(() {
+      _categoriesFuture = _categoryService.getAllCategories();
+    });
+  }
+
+  void _clearFiltersAndReloadCourses() {
+      _searchController.clear();
+      _selectedCategoryId = null;
+      _selectedSubjectIndex = -1;
+      _selectedSubjectFilter = null;
+      _loadCourses(); // Recharge avec les filtres par défaut (aucun)
+  }
+
+
+  Future<void> _refreshData() async {
+    // Conserver les filtres actuels ou les réinitialiser selon le besoin
+    _loadInitialData(); // recharge user
+    _loadCategories();  // recharge categories
+    _loadCourses(
+      categoryId: _selectedCategoryId,
+      searchQuery: _searchController.text,
+      subjectFilter: _selectedSubjectFilter,
+    ); // Recharge les cours avec les filtres actuels
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: eduLearnBackground, // Thème global
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 25),
-              _buildMainTitle(),
-              const SizedBox(height: 25),
-              _buildSearchBar(),
-              const SizedBox(height: 20),
-              _buildSubjectChips(),
-              const SizedBox(height: 30),
-              _buildSectionTitle("Categories"),
-              const SizedBox(height: 15),
-              _buildCategoriesList(_categories),
-              const SizedBox(height: 30),
-              _buildSectionTitle("Enroll Course", showSeeAll: true),
-              const SizedBox(height: 15),
-              _buildCoursesList(context, _courses),
-            ],
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          color: app_colors.eduLearnPrimary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, _currentUser),
+                const SizedBox(height: 25),
+                _buildMainTitle(),
+                const SizedBox(height: 25),
+                _buildSearchBar(),
+                const SizedBox(height: 20),
+                _buildSubjectChips(),
+                const SizedBox(height: 30),
+                _buildSectionTitle("Categories"),
+                const SizedBox(height: 15),
+                _buildCategoriesListWidget(), // Renommé pour éviter confusion
+                const SizedBox(height: 30),
+                _buildSectionTitleWithClear("Courses", showSeeAll: true),
+                const SizedBox(height: 15),
+                _buildCoursesListWidget(context), // Renommé pour éviter confusion
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, UserModel? currentUser) {
+    String displayName = "Hi, Guest";
+    String? avatarPath = 'assets/profile_avatar.png'; // Avatar par défaut
+
+    if (currentUser != null) {
+      displayName = "Hi, ${currentUser.prenom ?? currentUser.nomUtilisateur}";
+      // Si UserModel a un champ `avatar_url` ou similaire
+      // String? apiAvatarUrl = currentUser.avatarUrl;
+      // if (apiAvatarUrl != null && apiAvatarUrl.isNotEmpty) {
+      //   avatarPath = apiAvatarUrl.startsWith('http') ? apiAvatarUrl : ApiConstants.baseUrl.replaceAll("/api","") + apiAvatarUrl;
+      // }
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -100,13 +185,16 @@ class HomeScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundImage: const AssetImage('assets/profile_avatar.png'), // Assurez-vous que cet asset existe
-                onBackgroundImageError: (exception, stackTrace) {}, // Gère les erreurs de chargement
-                child: Image.asset('assets/profile_avatar.png', errorBuilder: (ctx, err, st) => const Icon(Icons.person, size: 22)),
+                backgroundColor: Colors.grey.shade200,
+                child: (avatarPath != null && avatarPath.startsWith('assets/'))
+                  ? ClipOval(child: Image.asset(avatarPath, fit:BoxFit.cover, width: 44, height: 44, errorBuilder: (ctx, err, st) => const Icon(Icons.person, size: 22)))
+                  : (avatarPath != null && avatarPath.startsWith('http'))
+                      ? ClipOval(child:Image.network(avatarPath, fit:BoxFit.cover, width: 44, height: 44, errorBuilder: (ctx, err, st) => const Icon(Icons.person, size: 22)))
+                      : const Icon(Icons.person, size: 22), // Fallback
               ),
               const SizedBox(width: 10),
               Text(
-                "Hi, Hamza", // TODO: Rendre dynamique
+                displayName,
                 style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w500, color: app_colors.eduLearnTextBlack),
               ),
             ],
@@ -126,7 +214,7 @@ class HomeScreen extends StatelessWidget {
         style: GoogleFonts.poppins(fontSize: 30, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack, height: 1.3),
         children: <TextSpan>[
           const TextSpan(text: 'Find a course\n'),
-          TextSpan(text: 'you want to learn.', style: TextStyle(color: app_colors.eduLearnPrimary)),
+          TextSpan(text: 'you want to learn', style: TextStyle(color: app_colors.eduLearnPrimary)),
         ],
       ),
     );
@@ -137,38 +225,72 @@ class HomeScreen extends StatelessWidget {
       children: [
         Expanded(
           child: TextField(
-            decoration: InputDecoration( // Utilise le thème global
+            controller: _searchController,
+            decoration: InputDecoration(
               hintText: 'Search for course...',
               prefixIcon: Icon(Icons.search, color: app_colors.eduLearnTextGrey.withOpacity(0.7)),
+              // suffixIcon: _searchController.text.isNotEmpty ? IconButton(
+              //   icon: Icon(Icons.clear),
+              //   onPressed: (){ _searchController.clear(); _loadCourses(); }
+              // ) : null,
             ),
+            onSubmitted: (value) {
+                _loadCourses(searchQuery: value);
+            },
+             onChanged: (value) { // Pour recherche en temps réel (optionnel, peut être lourd)
+                 // if (value.isEmpty) _loadCourses(); // Si on efface la recherche, recharger
+            },
           ),
         ),
         const SizedBox(width: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: app_colors.eduLearnPrimary,
-            borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius),
+        InkWell(
+          onTap: () {
+            // TODO: Afficher des filtres avancés (popup, bottom sheet)
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Advanced filters TBD.")));
+          },
+          borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius),
+          child: Container(
+            padding: const EdgeInsets.all(14), // Taille cohérente avec la hauteur du TextField
+            decoration: BoxDecoration(
+              color: app_colors.eduLearnPrimary,
+              borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius),
+            ),
+            child: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 24),
           ),
-          child: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 26),
         ),
       ],
     );
   }
 
   Widget _buildSubjectChips() {
-    final subjects = ["Python", "Graphic Design", "Development", "Marketing"];
     return SizedBox(
-      height: 42, // Augmenté un peu pour le padding des chips
+      height: 45, // Un peu plus d'espace pour les puces
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: subjects.length,
+        itemCount: _subjects.length,
         itemBuilder: (context, index) {
-          return ChoiceChip( // Utilise le thème global ChipTheme
-            label: Text(subjects[index]),
-            selected: index == 0, // Exemple: premier chip sélectionné
+          return ChoiceChip(
+            label: Text(_subjects[index]),
+            selected: _selectedSubjectIndex == index,
+            selectedColor: app_colors.eduLearnPrimary.withOpacity(0.2),
+            labelStyle: TextStyle(
+                color: _selectedSubjectIndex == index ? app_colors.eduLearnPrimary : app_colors.eduLearnTextGrey,
+                fontWeight: FontWeight.w500),
+            backgroundColor: app_colors.eduLearnAccent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(
+                  color: _selectedSubjectIndex == index ? app_colors.eduLearnPrimary : Colors.grey.shade300,
+                  width: _selectedSubjectIndex == index ? 1 : 0.5
+              )
+            ),
             onSelected: (selected) {
-              // TODO: Logique de filtrage par sujet
+              setState(() {
+                _selectedSubjectIndex = selected ? index : -1; // Déselectionner si on reclique
+                _selectedSubjectFilter = selected ? _subjects[index] : null;
+                _loadCourses(subjectFilter: _selectedSubjectFilter); // Assurez-vous que getAllCourses gère ce filtre
+                 print("Selected subject filter: $_selectedSubjectFilter");
+              });
             },
           );
         },
@@ -177,7 +299,15 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, {bool showSeeAll = false}) {
+  Widget _buildSectionTitle(String title) { // Section title simple
+    return Text(
+      title,
+      style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack),
+    );
+  }
+  
+  Widget _buildSectionTitleWithClear(String title, {bool showSeeAll = false}) {
+    bool hasActiveFilter = _selectedCategoryId != null || _searchController.text.isNotEmpty || _selectedSubjectFilter != null;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -186,155 +316,232 @@ class HomeScreen extends StatelessWidget {
           style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack),
         ),
         if (showSeeAll)
-          TextButton( // Utilisation de TextButton pour une meilleure sémantique
-            onPressed: () {
-              // TODO: Naviguer vers la page "See All"
-            },
-            child: Text(
-              "See all",
-              style: GoogleFonts.poppins(fontSize: 14, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500),
+            TextButton(
+                onPressed: () { /* TODO: Naviguer vers la page "See All" */
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("See All page not implemented.")));
+                },
+                child: Text( "See all", style: GoogleFonts.poppins(fontSize: 14, color: app_colors.eduLearnPrimary, fontWeight: FontWeight.w500)),
             ),
-          ),
+        if(hasActiveFilter && title == "Courses") // Afficher "Clear" seulement pour les cours et si un filtre est actif
+           TextButton(
+                onPressed: _clearFiltersAndReloadCourses,
+                child: Text( "Clear filters", style: GoogleFonts.poppins(fontSize: 12, color: app_colors.eduLearnError, fontWeight: FontWeight.w500)),
+            )
       ],
     );
   }
 
-  Widget _buildCategoriesList(List<Map<String, dynamic>> categories) {
-    return SizedBox(
-      height: 100, // Légèrement augmenté pour le texte
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18), // Augmenté pour une icône plus grande
-                decoration: BoxDecoration(
-                  color: category["color"],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(category["icon"], color: app_colors.eduLearnTextBlack.withOpacity(0.7), size: 30), // Plus grande
-              ),
-              const SizedBox(height: 8),
-              Text(
-                category["name"],
-                style: GoogleFonts.poppins(fontSize: 13, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500),
-              ),
-            ],
-          );
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 20),
-      ),
-    );
-  }
+  Widget _buildCategoriesListWidget() {
+    return FutureBuilder<List<CategoryModel>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 110, child: Center(child: CircularProgressIndicator()));
+        } else if (snapshot.hasError) {
+          return SizedBox(height: 110, child: Center(child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center,)));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox(height: 110, child: Center(child: Text("No categories found.")));
+        }
 
-  Widget _buildCoursesList(BuildContext context, List<CourseModel> courses) {
-    return SizedBox(
-      height: 320, // Maintenu
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: courses.length,
-        itemBuilder: (context, index) {
-          final course = courses[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CourseDetailsScreen(course: course),
+        final categories = snapshot.data!;
+        final List<Color> categoryColors = [
+            Colors.orangeAccent.shade100, Colors.purpleAccent.shade100, Colors.pinkAccent.shade100,
+            Colors.lightBlueAccent.shade100, Colors.greenAccent.shade100, Colors.tealAccent.shade100
+        ];
+         final Map<String, IconData> categoryIcons = { // Mapping simplifié, vous devrez l'améliorer
+            "arts": Icons.palette_outlined, "art": Icons.palette_outlined,
+            "design": Icons.design_services_outlined,
+            "marketing": Icons.campaign_outlined,
+            "coding": Icons.code_outlined, "développement": Icons.code_outlined,
+            "business": Icons.business_center_outlined, "commerce": Icons.business_center_outlined,
+            "data science": Icons.bar_chart_rounded,
+            "photography": Icons.camera_alt_outlined,
+        };
+
+        return SizedBox(
+          height: 110,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              final color = categoryColors[index % categoryColors.length].withOpacity(0.7);
+              final icon = categoryIcons[category.nomCategorie.toLowerCase()] ?? Icons.category_rounded;
+
+              return InkWell(
+                onTap: () {
+                   _loadCourses(categoryId: category.id.toString());
+                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Courses for ${category.nomCategorie}")));
+                },
+                borderRadius: BorderRadius.circular(15),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                      child: Icon(icon, color: app_colors.eduLearnTextBlack.withOpacity(0.8), size: 30),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      category.nomCategorie,
+                      style: GoogleFonts.poppins(fontSize: 13, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               );
             },
-            child: Card( // Utilisation de Card pour l'élévation et la forme
-              elevation: 2.0,
-              shadowColor: Colors.grey.withOpacity(0.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius)),
-              child: SizedBox( // Conteneur pour la largeur de la carte
-                width: 230,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(app_colors.kDefaultBorderRadius)),
-                      child: Image.asset(
-                        course.imageUrl,
-                        height: 130,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 130,
-                          color: Colors.grey.shade200,
-                          child: const Center(child: Icon(Icons.school_outlined, color: Colors.grey, size: 50)),
-                        ),
-                      ),
+            separatorBuilder: (context, index) => const SizedBox(width: 20),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCoursesListWidget(BuildContext context) {
+    return FutureBuilder<List<CourseModel>>(
+      future: _coursesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 320, child: Center(child: CircularProgressIndicator()));
+        } else if (snapshot.hasError) {
+          return SizedBox(height: 320, child: Center(child: Text("Error loading courses: ${snapshot.error}")));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox(height: 320, child: Center(child: Text("No courses match your criteria.")));
+        }
+
+        final courses = snapshot.data!;
+        return SizedBox(
+          height: 320, // Ajustez si nécessaire
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: courses.length,
+            itemBuilder: (context, index) {
+              final course = courses[index];
+              String imageUrl = course.imageUrl;
+              if (!imageUrl.startsWith('http') && !imageUrl.startsWith('assets/')) {
+                  imageUrl = ApiConstants.baseUrl.replaceAll("/api", "") + (imageUrl.startsWith('/') ? imageUrl : '/$imageUrl');
+              }
+              String instructorAvatarUrl = course.instructorAvatar ?? 'assets/default_avatar.png';
+               if (course.instructorAvatar != null && !course.instructorAvatar!.startsWith('http') && !course.instructorAvatar!.startsWith('assets/')) {
+                  instructorAvatarUrl = ApiConstants.baseUrl.replaceAll("/api", "") + (course.instructorAvatar!.startsWith('/') ? course.instructorAvatar! : '/${course.instructorAvatar!}');
+              }
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CourseDetailsScreen(courseInput: course),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 18),
-                              const SizedBox(width: 4),
-                              Text("${course.rating}", style: GoogleFonts.poppins(color: app_colors.eduLearnTextGrey.withOpacity(0.8), fontWeight: FontWeight.w500)),
-                              const Spacer(),
-                              Icon(Icons.timer_outlined, color: app_colors.eduLearnTextGrey, size: 16),
-                              const SizedBox(width: 4),
-                              Text(course.durationTotal.split(" ").first, style: GoogleFonts.poppins(fontSize: 12, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500)), // Afficher que le nombre d'heures
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            course.courseName, // Utiliser courseName
-                            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack, height: 1.3),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 15,
-                                backgroundColor: Colors.grey.shade200,
-                                child: ClipOval(
-                                  child: Image.asset(
-                                    course.instructorAvatar,
-                                    fit: BoxFit.cover, width: 30, height: 30,
-                                    errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 15, color: app_colors.eduLearnTextGrey),
+                  );
+                },
+                child: Card(
+                  elevation: 3.0,
+                  shadowColor: Colors.black.withOpacity(0.1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(app_colors.kDefaultBorderRadius)),
+                  child: SizedBox(
+                    width: 230,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Hero( // Ajout de Hero pour la transition d'image
+                          tag: 'course_image_${course.id}',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(app_colors.kDefaultBorderRadius)),
+                            child: imageUrl.startsWith('assets/')
+                                ? Image.asset(imageUrl, height: 130, width: double.infinity, fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => _courseImageErrorPlaceholder())
+                                : Image.network(imageUrl, height: 130, width: double.infinity, fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => _courseImageErrorPlaceholder(),
+                                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return SizedBox(height: 130, child: Center(child: CircularProgressIndicator(
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                              : null,
+                                          strokeWidth: 2.0,
+                                      )));
+                                    },
                                   ),
-                                ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.star, color: Colors.amber.shade600, size: 18),
+                                  const SizedBox(width: 4),
+                                  Text(course.rating.toStringAsFixed(1), style: GoogleFonts.poppins(color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500)),
+                                  const Spacer(),
+                                  Icon(Icons.schedule_outlined, color: app_colors.eduLearnTextGrey, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    course.durationTotal.split(" ").first, // "45 Heures" -> "45"
+                                    style: GoogleFonts.poppins(fontSize: 12, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(course.instructorName, style: GoogleFonts.poppins(color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis,)),
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: app_colors.eduLearnAccent,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  "\$${course.price.toStringAsFixed(2)}",
-                                  style: GoogleFonts.poppins(color: app_colors.eduLearnPrimary, fontWeight: FontWeight.bold),
-                                ),
+                              const SizedBox(height: 8),
+                              Text(
+                                course.courseName,
+                                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: app_colors.eduLearnTextBlack, height: 1.3),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 10), // Un peu plus d'espace
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 15,
+                                    backgroundColor: Colors.grey.shade200,
+                                    child: ClipOval(
+                                      child: instructorAvatarUrl.startsWith('assets/')
+                                          ? Image.asset(instructorAvatarUrl, fit: BoxFit.cover, width: 30, height: 30, errorBuilder: (c,e,s) => const Icon(Icons.person, size: 15))
+                                          : Image.network(instructorAvatarUrl, fit: BoxFit.cover, width: 30, height: 30, errorBuilder: (c,e,s) => const Icon(Icons.person, size: 15)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(course.instructorName, style: GoogleFonts.poppins(fontSize: 13, color: app_colors.eduLearnTextGrey, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: app_colors.eduLearnAccent.withOpacity(0.7),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      "Details", // ou "Watch Now"
+                                      style: GoogleFonts.poppins(color: app_colors.eduLearnPrimary, fontWeight: FontWeight.bold, fontSize: 11),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    )
-                  ],
+                        )
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 15),
-      ),
+              );
+            },
+            separatorBuilder: (context, index) => const SizedBox(width: 15),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _courseImageErrorPlaceholder() {
+    return Container(
+      height: 130, width: double.infinity,
+      color: Colors.grey.shade200,
+      child: const Center(child: Icon(Icons.school_outlined, color: Colors.grey, size: 50)),
     );
   }
 }

@@ -1,5 +1,11 @@
+// lib/screens/auth/login_screen.dart
+
 import 'package:flutter/material.dart';
-import '../../utils/app_colors.dart'; // Importation des couleurs
+import 'package:provider/provider.dart';
+import '../../models/user_model.dart';
+import '../../services/auth_service.dart';
+import '../../utils/app_colors.dart';
+import '../../providers/auth_provider.dart'; // <<=== ASSUREZ-VOUS D'IMPORTER VOTRE AUTHPROVIDER
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,33 +16,66 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      String username = _usernameController.text;
-      String password = _passwordController.text;
+      setState(() {
+        _isLoading = true;
+      });
 
-      // Vérification simple des identifiants
-      // TODO: Remplacer par une vraie logique d'authentification
-      if (username == 'hamza@gmail.com' && password == 'hamza123') {
-        Navigator.pushReplacementNamed(context, '/'); // Naviguer vers HomeScreen
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connexion réussie !'), backgroundColor: eduLearnSuccess),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Identifiants incorrects'), backgroundColor: eduLearnError),
-        );
+      try {
+        final email = _emailController.text;
+        final password = _passwordController.text;
+
+        // Appel au service d'authentification
+        final authData = await _authService.login(email, password);
+        final UserModel user = authData['user'];
+        final String token = authData['token'];
+
+        if (mounted) {
+          // Mettre à jour l'état global d'authentification via le Provider
+          Provider.of<AuthProvider>(context, listen: false).loginSuccess(user, token);
+
+          // Le SnackBar est optionnel ici, car l'écran va changer.
+          // Vous pourriez vouloir afficher le message de bienvenue sur HomeScreen.
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   SnackBar(
+          //       content: Text('Connexion réussie ! Bonjour ${user.prenom ?? user.nomUtilisateur}'),
+          //       backgroundColor: eduLearnSuccess),
+          // );
+
+          // PAS DE NAVIGATION EXPLICITE ICI.
+          // Le Consumer<AuthProvider> dans main.dart gérera la redirection vers HomeScreen
+          // en réponse à la mise à jour de l'état d'authentification.
+        }
+
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(e.toString().replaceFirst("Exception: ", "")), // Affiche le message d'erreur de l'API
+                backgroundColor: eduLearnError),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -52,11 +91,13 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               SizedBox(
-                height: 180,
+                height: 180, // Ajustez si nécessaire
                 child: Image.asset(
-                  'assets/login_illustration.png', // Assurez-vous que cet asset existe
+                  'assets/login_illustration.png', // Assurez-vous que cet asset existe et est déclaré dans pubspec.yaml
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
+                    // Affiche une icône en cas d'erreur de chargement de l'image
+                    print("Erreur chargement image login: $error"); // Pour le débogage
                     return const Center(
                       child: Icon(Icons.school_outlined, size: 100, color: eduLearnPrimary),
                     );
@@ -75,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Enter valid user name & password to continue',
+                'Enter valid email & password to continue',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,
@@ -88,18 +129,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: <Widget>[
                     TextFormField(
-                      controller: _usernameController,
-                      decoration: InputDecoration(
-                        labelText: 'User name (email)',
-                        prefixIcon: const Icon(Icons.person_outline, color: eduLearnPrimary),
-                        // Utilise le thème global pour le style
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration( // Le thème global d'InputDecoration s'appliquera
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email_outlined), // La couleur sera gérée par le thème prefixIconColor
                       ),
                       style: const TextStyle(color: eduLearnTextBlack),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your user name';
+                          return 'Please enter your email';
                         }
-                        if (!value.contains('@')) {
+                        if (!value.contains('@') || !value.contains('.')) {
                           return 'Please enter a valid email';
                         }
                         return null;
@@ -111,11 +152,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: !_isPasswordVisible,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline, color: eduLearnPrimary),
+                        prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                            color: eduLearnPrimary,
+                            // La couleur de l'icône suffixe est généralement gérée par iconTheme ou est la couleur d'accentuation
                           ),
                           onPressed: () {
                             setState(() {
@@ -123,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                         ),
-                        // Utilise le thème global pour le style
                       ),
                       style: const TextStyle(color: eduLearnTextBlack),
                       validator: (value) {
@@ -143,24 +183,28 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    // TODO: Logique mot de passe oublié
+                  onPressed: _isLoading ? null : () {
+                    // TODO: Implémenter la logique de mot de passe oublié (appel API, etc.)
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Forgot password functionality not implemented.')),
                     );
                   },
+                  // style: TextButton.styleFrom(padding: EdgeInsets.zero), // Pour enlever le padding si nécessaire
                   child: const Text(
                     'Forget password?',
-                    style: TextStyle(color: eduLearnPrimary), // Style direct pour ce TextButton spécifique
+                    // Le style est géré par TextButtonThemeData ou hérité,
+                    // mais vous pouvez le surcharger si besoin :
+                    // style: TextStyle(color: eduLearnPrimary),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                // Style via ElevatedButtonTheme
-                onPressed: _login,
-                child: const Text('Login'),
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: eduLearnPrimary))
+                  : ElevatedButton(
+                      onPressed: _login,
+                      child: const Text('Login'), // Le style est géré par ElevatedButtonThemeData
+                    ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -170,13 +214,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(color: eduLearnTextGrey),
                   ),
                   TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/register');
+                    onPressed: _isLoading ? null : () {
+                      Navigator.pushNamed(context, '/register'); // Assurez-vous que cette route existe
                     },
                     child: const Text(
                       'Sign up',
-                      // Style via TextButtonTheme, mais peut être surchargé
-                      // style: TextStyle(color: eduLearnPrimary),
+                      // Le style est géré par TextButtonThemeData,
+                      // ou vous pouvez forcer la couleur ici :
+                      // style: TextStyle(color: eduLearnPrimary, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],

@@ -1,31 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/course_model.dart';
+import '../../models/lesson_model.dart'; // Assurez-vous d'utiliser le LessonModel mis à jour
 import '../../utils/app_colors.dart';
-import './chapter_view_screen.dart'; // Renommé et adapté
+import '../../utils/api_constants.dart';
+import './chapter_view_screen.dart'; // Devrait être lesson_view_screen.dart ou chapter_view_screen.dart
+import '../../services/course_service.dart'; // Pour getCourseById pour charger les détails complets si nécessaire
+import '../../services/enrollment_service.dart'; // Pour s'inscrire au cours
+// Importer QuizListScreen ou un écran pour démarrer le quiz du cours
+import '../quiz/quiz_list_screen.dart'; // Si le bouton mène à une liste générale de quiz pour ce cours
 
 class CourseDetailsScreen extends StatefulWidget {
-  final CourseModel course;
-
-  const CourseDetailsScreen({super.key, required this.course});
+  final CourseModel courseInput; // Le cours passé en argument
+                                // peut être un résumé, on pourrait recharger les détails complets.
+  const CourseDetailsScreen({super.key, required this.courseInput});
 
   @override
   State<CourseDetailsScreen> createState() => _CourseDetailsScreenState();
 }
 
 class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
-  bool _isFavorited = false;
+  bool _isFavorited = false; // TODO: A gérer avec une API
+  bool _isLoadingDetails = false;
+  bool _isEnrolled = false; // TODO: A vérifier via une API ou état global
+  double _progress = 0.0;   // TODO: A récupérer via API si l'utilisateur est inscrit
 
-  // Les chapitres viennent maintenant de widget.course.chapters
-  // List<ChapterModel> get chapters => widget.course.chapters;
+  late CourseModel _course; // Cours actuel à afficher (peut être mis à jour)
+
+  final CourseService _courseService = CourseService();
+  final EnrollmentService _enrollmentService = EnrollmentService();
+
+
+  @override
+  void initState() {
+    super.initState();
+    _course = widget.courseInput;
+    // Optionnel: Recharger les détails complets du cours si `courseInput` est un résumé
+    _fetchFullCourseDetails();
+    // TODO: Vérifier si l'utilisateur est inscrit et sa progression
+    // _checkEnrollmentStatus();
+  }
+
+  Future<void> _fetchFullCourseDetails() async {
+    if (mounted) {
+      setState(() { _isLoadingDetails = true; });
+    }
+    try {
+      // Si le courseInput n'a pas de leçons détaillées, par exemple.
+      // Note: si les leçons sont toujours incluses, cet appel peut ne pas être nécessaire.
+      final fullCourse = await _courseService.getCourseById(_course.id);
+      if (mounted) {
+        setState(() {
+          _course = fullCourse;
+        });
+      }
+    } catch (e) {
+       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error loading course details: ${e.toString()}"), backgroundColor: eduLearnError),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isLoadingDetails = false; });
+      }
+    }
+  }
+  
+  // Future<void> _checkEnrollmentStatus() async {
+  //   // Appel API pour vérifier si l'utilisateur est inscrit et obtenir la progression
+  //   // Mettre à jour _isEnrolled et _progress
+  // }
+
+  Future<void> _enrollOrContinueCourse() async {
+    if (!_isEnrolled) {
+      try {
+        await _enrollmentService.enrollToCourse(_course.id);
+        if(mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Inscription réussie!"), backgroundColor: eduLearnSuccess),
+          );
+          setState(() { _isEnrolled = true; });
+          // Naviguer vers la première leçon ou rester sur la page
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString().replaceFirst("Exception: ", "")), backgroundColor: eduLearnError),
+          );
+        }
+      }
+    } else {
+      // Logique pour "Continuer le cours"
+      // Peut-être naviguer vers la dernière leçon vue
+      if (_course.lessons.isNotEmpty) {
+        // Trouver la première leçon non complétée ou la première leçon
+         LessonModel lessonToStart = _course.lessons.firstWhere((l) => !l.isLocked, orElse: () => _course.lessons.first);
+
+         Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChapterViewScreen( // ou LessonViewScreen
+              course: _course,
+              // Assurez-vous que `chapter` est bien `LessonModel`
+              chapter: lessonToStart, // Utiliser lessonToStart qui est un LessonModel
+              allChaptersInCourse: _course.lessons, // Utiliser `_course.lessons`
+              currentChapterIndex: _course.lessons.indexOf(lessonToStart),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Ce cours n'a pas encore de leçons."))
+        );
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    // Remplacez widget.course par _course pour utiliser les données potentiellement rechargées
+    // et 'chapters' par 'lessons' pour correspondre à CourseModel.
+    List<LessonModel> lessons = _course.lessons;
+
+
     return Scaffold(
-      // backgroundColor: eduLearnBackground, // Thème global
       appBar: AppBar(
-        // backgroundColor: eduLearnBackground, // Thème global
-        // elevation: 0, // Thème global
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: InkWell(
@@ -33,121 +134,157 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
             customBorder: const CircleBorder(),
             child: Container(
               decoration: BoxDecoration(
-                color: eduLearnCardBg, // Fond pour le bouton
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3)
-                ]
+                color: eduLearnCardBg, shape: BoxShape.circle,
+                boxShadow: [ BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3) ]
               ),
               child: const Icon(Icons.arrow_back_ios_new_rounded, color: eduLearnTextBlack, size: 20),
             ),
           ),
         ),
-        title: Text("Course Details"), // Le thème global gère le style
+        title: const Text("Course Details"),
         centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: InkWell(
               onTap: () {
-                setState(() {
-                  _isFavorited = !_isFavorited;
-                });
+                setState(() { _isFavorited = !_isFavorited; });
+                // TODO: API call pour gérer les favoris
               },
               customBorder: const CircleBorder(),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                 decoration: BoxDecoration(
-                  color: eduLearnCardBg,
-                  shape: BoxShape.circle,
-                   boxShadow: [
-                    BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3)
-                  ]
+                decoration: BoxDecoration(
+                  color: eduLearnCardBg, shape: BoxShape.circle,
+                  boxShadow: [ BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 3) ]
                 ),
                 child: Icon(
                   _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: eduLearnPrimary,
-                  size: 22,
+                  color: eduLearnPrimary, size: 22,
                 ),
               ),
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 20.0), // Moins de padding en haut
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCourseImage(),
-            const SizedBox(height: 16),
-            _buildInstructorAndMetaInfo(),
-            const SizedBox(height: 16),
-            _buildCourseTitle(),
-            const SizedBox(height: 12),
-            _buildStatsChips(),
-            const SizedBox(height: 24),
-            _buildSectionTitle("Course Description"), // Changé de "Course Details"
-            const SizedBox(height: 8),
-            _buildCourseDescription(),
-            const SizedBox(height: 24),
-            _buildSectionTitle("Chapters (${widget.course.chapters.length})"), // Changé de "Lessons"
-            const SizedBox(height: 12),
-            widget.course.chapters.isEmpty
-                ? _buildEmptyState("No chapters available for this course yet.")
-                : _buildChaptersList(), // Renommé
-            const SizedBox(height: 24),
-             ElevatedButton( // Style via thème
-              onPressed: () { /* TODO: Logique pour s'inscrire/continuer */ },
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50), // Pleine largeur
-              ),
-              child: Text("Enroll Course - \$${widget.course.price.toStringAsFixed(2)}"),
+      body: _isLoadingDetails
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCourseImage(),
+                const SizedBox(height: 16),
+                _buildInstructorAndMetaInfo(),
+                const SizedBox(height: 16),
+                _buildCourseTitle(),
+                const SizedBox(height: 12),
+                _buildStatsChips(),
+                const SizedBox(height: 24),
+                _buildSectionTitle("Course Description"),
+                const SizedBox(height: 8),
+                _buildCourseDescription(),
+                const SizedBox(height: 24),
+                _buildSectionTitle("Chapters (${lessons.length})"), // Utilisez lessons.length
+                const SizedBox(height: 12),
+                lessons.isEmpty
+                    ? _buildEmptyState("No chapters available for this course yet.")
+                    : _buildChaptersList(lessons), // Passez la liste des leçons
+                const SizedBox(height: 24),
+                 ElevatedButton(
+                  onPressed: _enrollOrContinueCourse, // Logique d'inscription ou de continuation
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: Text(_isEnrolled ? "Continue Learning" : "Enroll Now"),
+                ),
+                const SizedBox(height: 10),
+                 OutlinedButton(
+                  onPressed: () {
+                     // TODO: Naviguer vers l'écran de quiz pour ce cours
+                     // Cela pourrait nécessiter de passer courseId à QuizListScreen ou
+                     // directement à un écran qui charge le quiz final du cours.
+                     Navigator.push(context, MaterialPageRoute(builder: (_) => QuizListScreen()));
+                     // Alternative: si vous avez l'ID du quiz final du cours :
+                     // QuizInfoModel quizInfo = ... (construire ou récupérer l'info du quiz final)
+                     // QuizAttemptModel quizToAttempt = await _quizService.getQuizForAttempt(quizInfo.quizId);
+                     // Navigator.push(context, MaterialPageRoute(builder: (_) => QuizAttemptScreen(quizAttempt: quizToAttempt)));
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Quiz for this course TBD")));
+                  },
+                   style: OutlinedButton.styleFrom(
+                     minimumSize: const Size(double.infinity, 50),
+                     side: const BorderSide(color: eduLearnPrimary)
+                   ),
+                  child: const Text("Passer l'évaluation"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   Widget _buildCourseImage() {
-    return Hero( // Pour une transition animée potentielle
-      tag: 'course_image_${widget.course.id}',
+    String imageUrl = _course.imageUrl;
+    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('assets/')) {
+      imageUrl = ApiConstants.baseUrl.replaceAll("/api", "") + (imageUrl.startsWith('/') ? imageUrl : '/$imageUrl');
+    }
+
+    return Hero(
+      tag: 'course_image_${_course.id}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(kDefaultBorderRadius),
-        child: Image.asset(
-          widget.course.imageUrl,
-          height: 200,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            height: 200,
-            color: Colors.grey.shade300,
-            child: const Center(child: Icon(Icons.school_outlined, color: Colors.grey, size: 50)),
-          ),
-        ),
+        child: imageUrl.startsWith('assets/')
+            ? Image.asset(imageUrl, height: 200, width: double.infinity, fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => _imageErrorPlaceholder())
+            : Image.network(imageUrl, height: 200, width: double.infinity, fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => _imageErrorPlaceholder(),
+                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return SizedBox(height: 200, child: Center(child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                  )));
+                },
+              ),
       ),
     );
   }
+  Widget _imageErrorPlaceholder() {
+    return Container(
+        height: 200, width: double.infinity, color: Colors.grey.shade300,
+        child: const Center(child: Icon(Icons.school_outlined, color: Colors.grey, size: 50)),
+    );
+  }
+
 
   Widget _buildInstructorAndMetaInfo() {
+     String instructorAvatarUrl = _course.instructorAvatar ?? 'assets/default_avatar.png';
+     if (!instructorAvatarUrl.startsWith('http') && !instructorAvatarUrl.startsWith('assets/')) {
+        instructorAvatarUrl = ApiConstants.baseUrl.replaceAll("/api", "") + (instructorAvatarUrl.startsWith('/') ? instructorAvatarUrl : '/$instructorAvatarUrl') ;
+    }
+
     return Row(
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundImage: AssetImage(widget.course.instructorAvatar),
-          onBackgroundImageError: (e, s) {},
-          child: Image.asset(widget.course.instructorAvatar, errorBuilder: (c,e,s) => const Icon(Icons.person, size: 20)),
+          backgroundColor: Colors.grey.shade200,
+          child: ClipOval(
+             child: instructorAvatarUrl.startsWith('assets/')
+              ? Image.asset(instructorAvatarUrl, width: 40, height: 40, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.person, size: 20))
+              : Image.network(instructorAvatarUrl, width: 40, height: 40, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.person, size: 20))
+          )
         ),
         const SizedBox(width: 10),
         Text(
-          widget.course.instructorName,
+          _course.instructorName,
           style: GoogleFonts.poppins(color: eduLearnTextBlack, fontWeight: FontWeight.w600, fontSize: 15),
         ),
         const Spacer(),
-        _buildMetaChip(Icons.timer_outlined, widget.course.durationTotal, eduLearnAccent.withOpacity(0.7)),
+        _buildMetaChip(Icons.timer_outlined, _course.durationTotal, eduLearnAccent.withOpacity(0.7)),
         const SizedBox(width: 8),
-        _buildMetaChip(Icons.star_rounded, "${widget.course.rating}", Colors.orange.shade100.withOpacity(0.7), iconColor: Colors.orange.shade700, textColor: Colors.orange.shade800),
+        _buildMetaChip(Icons.star_rounded, _course.rating.toStringAsFixed(1), Colors.orange.shade100.withOpacity(0.7), iconColor: Colors.orange.shade700, textColor: Colors.orange.shade800),
       ],
     );
   }
@@ -172,7 +309,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
   Widget _buildCourseTitle() {
     return Text(
-      widget.course.courseName,
+      _course.courseName,
       style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: eduLearnTextBlack, height: 1.3),
     );
   }
@@ -180,9 +317,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   Widget _buildStatsChips() {
     return Row(
       children: [
-        _buildMetaChip(Icons.people_outline_rounded, "${widget.course.studentCount} Students", eduLearnAccent.withOpacity(0.7)),
+        _buildMetaChip(Icons.people_outline_rounded, "${_course.studentCount} Students", eduLearnAccent.withOpacity(0.7)),
         const SizedBox(width: 10),
-        _buildMetaChip(Icons.library_books_outlined, "${widget.course.lessonCount} Chapters", eduLearnAccent.withOpacity(0.7)),
+        _buildMetaChip(Icons.library_books_outlined, "${_course.lessonCount} Chapters", eduLearnAccent.withOpacity(0.7)),
       ],
     );
   }
@@ -215,29 +352,37 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
   Widget _buildCourseDescription() {
     return Text(
-      widget.course.description,
+      _course.description ?? "No description available.",
       style: GoogleFonts.poppins(fontSize: 14, color: eduLearnTextGrey, height: 1.6),
     );
   }
 
-  Widget _buildChaptersList() {
+  Widget _buildChaptersList(List<LessonModel> lessons) { // Prend LessonModel en argument
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: widget.course.chapters.length,
+      itemCount: lessons.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final chapter = widget.course.chapters[index];
+        final lesson = lessons[index]; // C'est un LessonModel
+        String? lessonImageUrl = lesson.imagePath;
+         if (lessonImageUrl != null && !lessonImageUrl.startsWith('http') && !lessonImageUrl.startsWith('assets/')) {
+          lessonImageUrl = ApiConstants.baseUrl.replaceAll("/api", "") + (lessonImageUrl.startsWith('/') ? lessonImageUrl : '/$lessonImageUrl');
+        }
+
         return InkWell(
           onTap: () {
-            if (!chapter.isLocked) {
+            // Mettre à jour l'état de la leçon à "isLocked=false" est une logique complexe
+            // qui dépend de la progression. Pour l'instant, on se base sur le `isLocked` du modèle.
+            // L'API de progression (`updateLessonProgress`) devrait mettre à jour cet état.
+            if (!lesson.isLocked) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ChapterViewScreen(
-                    course: widget.course,
-                    chapter: chapter,
-                    allChaptersInCourse: widget.course.chapters,
+                  builder: (context) => ChapterViewScreen( // ou LessonViewScreen
+                    course: _course,
+                    chapter: lesson, // chapter est un LessonModel
+                    allChaptersInCourse: lessons,
                     currentChapterIndex: index,
                   ),
                 ),
@@ -264,20 +409,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: chapter.imagePath != null && chapter.imagePath!.startsWith('assets/')
-                  ? Image.asset( // Image locale pour le chapitre
-                      chapter.imagePath!,
-                      width: 60, height: 60, fit: BoxFit.cover,
-                      errorBuilder: (c,e,s) => _defaultChapterIcon(index)
-                    )
-                  : (chapter.imagePath != null
-                      ? Image.network( // Image réseau pour le chapitre
-                          chapter.imagePath!,
-                          width: 60, height: 60, fit: BoxFit.cover,
-                          errorBuilder: (c,e,s) => _defaultChapterIcon(index)
-                        )
-                      : _defaultChapterIcon(index) // Placeholder si pas d'image
-                    )
+                   child: lessonImageUrl == null
+                    ? _defaultChapterIcon(index)
+                    : (lessonImageUrl.startsWith('assets/')
+                        ? Image.asset(lessonImageUrl, width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s) => _defaultChapterIcon(index))
+                        : Image.network(lessonImageUrl, width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s) => _defaultChapterIcon(index)))
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -285,23 +421,26 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        chapter.title,
+                        lesson.title,
                         style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: eduLearnTextBlack),
                         maxLines: 1, overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        chapter.durationDisplay, // Champ de `ChapterModel`
+                        lesson.durationDisplay, // Utilise le getter de LessonModel
                         style: GoogleFonts.poppins(fontSize: 12, color: eduLearnTextLightGrey),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
+                // L'état isPlaying est local à l'UI. isLocked devrait venir des données de progression.
+                // isCompleted pourrait aussi être un indicateur.
                 Icon(
-                  chapter.isLocked ? Icons.lock_rounded
-                      : (chapter.isPlaying) ? Icons.pause_circle_filled_rounded : Icons.play_circle_outline_rounded,
-                  color: chapter.isLocked ? eduLearnTextLightGrey : eduLearnPrimary,
+                  lesson.isLocked ? Icons.lock_rounded
+                      // : (lesson.isCompleted) ? Icons.check_circle_rounded // Ex: si complété
+                      : (lesson.isPlaying) ? Icons.pause_circle_filled_rounded : Icons.play_circle_outline_rounded,
+                  color: lesson.isLocked ? eduLearnTextLightGrey : eduLearnPrimary,
                   size: 28,
                 ),
               ],
