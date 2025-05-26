@@ -20,6 +20,7 @@ class CourseDetailsScreen extends StatefulWidget {
 }
 
 class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
+  int? _currentEnrollmentId;
   bool _isFavorited = false; // TODO: A gérer avec une API
   bool _isLoadingDetails = false;
   bool _isEnrolled = false; // TODO: A vérifier via une API ou état global
