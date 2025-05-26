@@ -382,7 +382,15 @@ class _ChapterViewScreenState extends State<ChapterViewScreen> {
     } else if (_currentLesson.isCompleted && canGoNextNonQuiz) { // Déjà complété, pas de quiz, il y a une suite
          buttons.add(
             ElevatedButton.icon(
-              onPressed: () => _navigateToLesson(_currentLessonIdx + 1),
+              onPressed: () {
+                    if (_currentLesson.quizzes.isNotEmpty) { // <<< AJOUTER CETTE VÉRIFICATION
+                      _attemptLessonQuiz(_currentLesson.quizzes.first);
+                    } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Aucun quiz défini pour cette leçon."))
+                        );
+                    }
+                  },
               label: const Text("Suivant"),
               icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
             )

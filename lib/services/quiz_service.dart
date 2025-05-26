@@ -37,6 +37,7 @@ class QuizService {
     );
 
     if (response.statusCode == 200) {
+      print("QuizService: getQuizForAttempt SUCCESS (200). JSON du Quiz: ${response.body}");
       final List<dynamic> data = json.decode(response.body);
       // L'API doit renvoyer des données agrégées pour QuizInfoModel.
       // Ceci est une supposition sur la structure de la réponse.
@@ -49,16 +50,19 @@ class QuizService {
 
   // Pour QuizAttemptScreen: obtenir les détails d'un quiz pour le commencer
   Future<QuizAttemptModel> getQuizForAttempt(int quizId) async {
-    final response = await http.get(
-      Uri.parse(ApiConstants.baseUrl + ApiConstants.quizByIdEndpoint(quizId)),
-      headers: await _getAuthHeaders(),
-    );
+    final headers = await _getAuthHeaders();
+    final url = Uri.parse(ApiConstants.baseUrl + ApiConstants.quizByIdEndpoint(quizId));
+    print("QuizService: Attempting to get quiz details for attempt. URL: $url");
+    print("QuizService: With headers: $headers");
+
+    final response = await http.get(url, headers: headers);
 
     if (response.statusCode == 200) {
-      // Le backend doit renvoyer les questions SANS la bonne réponse pour `est_correcte`
-      // La factory QuizAttemptModel.fromQuizJson(data, forTakingQuiz: true) gère cela
+      print("QuizService: getQuizForAttempt SUCCESS (200). Body: ${response.body}");
       return QuizAttemptModel.fromQuizJson(json.decode(response.body), forTakingQuiz: true);
     } else {
+      // IMPRIMER L'ERREUR ICI
+      print("QuizService: Failed to load quiz details for attempt. Status: ${response.statusCode}, Body: ${response.body}");
       throw Exception('Failed to load quiz details for attempt');
     }
   }

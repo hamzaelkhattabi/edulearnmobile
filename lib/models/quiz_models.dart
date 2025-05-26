@@ -3,7 +3,7 @@
 // Pour afficher une liste de quiz (QuizListScreen)
 class QuizInfoModel {
   final int quizId; // Quiz.id
-  final int? courseId; // Quiz.cours_id
+  final int? courseId; // Quiz.cours_id ou via Lesson.cours_id
   final String courseName; // Course.titre (via jointure)
   final String quizName; // Quiz.titre
   final int totalQuestions; // Calculé (nombre de QuestionsQuiz)
@@ -22,30 +22,51 @@ class QuizInfoModel {
     this.isPassed,
   });
 
-  // Sera rempli par le service en combinant les infos de Quiz et TentativesQuiz
   factory QuizInfoModel.fromJson(Map<String, dynamic> json) {
-    // Ceci est une simplification. Votre API devra fournir ces données agrégées.
-    // Si l'API renvoie directement la structure de la table Quiz et potentiellement une tentative associée :
+    // Le backend pour `GET /api/quizzes` doit envoyer les champs formatés comme ça.
+    // Le `exports.listAllMyQuizzes` que nous avons écrit essaie de faire ça.
+    double? parsedScore;
+    if (json['score'] != null) {
+      if (json['score'] is String) {
+        parsedScore = double.tryParse(json['score'] as String);
+      } else if (json['score'] is num) {
+        parsedScore = (json['score'] as num).toDouble();
+      }
+    }
+
+    bool? parsedIsPassed;
+    if (json['isPassed'] != null && json['isPassed'] is bool) {
+        parsedIsPassed = json['isPassed'] as bool;
+    } else if (parsedScore != null && json['seuil_reussite_pourcentage'] != null) {
+        double seuil;
+        if (json['seuil_reussite_pourcentage'] is String) {
+            seuil = double.tryParse(json['seuil_reussite_pourcentage'] as String) ?? 101.0;
+        } else if (json['seuil_reussite_pourcentage'] is num) {
+            seuil = (json['seuil_reussite_pourcentage'] as num).toDouble();
+        } else {
+            seuil = 101.0; // Seuil impossible à atteindre si le format est inconnu
+        }
+        parsedIsPassed = parsedScore >= seuil;
+    }
+
+
     return QuizInfoModel(
-      quizId: json['id'], // depuis la table Quiz
-      courseId: json['cours_id'],
-      courseName: json['Cour']?['titre'] ?? json['Lecon']?['Cour']?['titre'] ?? 'Cours Inconnu', // Nom du cours via jointure
-      quizName: json['titre'],
-      totalQuestions: (json['QuizQuestions'] as List?)?.length ?? json['total_questions_count'] ?? 0, // Si API renvoie le compte ou les questions
-      description: json['description'],
-      // score et isPassed seraient mis à jour à partir des données de tentatives si disponibles
-      score: (json['latest_attempt']?['score_obtenu'] as num?)?.toDouble(),
-      isPassed: json['latest_attempt'] != null && json['seuil_reussite_pourcentage'] != null
-        ? ((json['latest_attempt']['score_obtenu'] as num? ?? 0.0) >= (json['seuil_reussite_pourcentage'] as num? ?? 101.0))
-        : null,
+      quizId: json['quizId'] as int? ?? 0, // Doit venir du backend
+      courseId: json['courseId'] as int?,
+      courseName: json['courseName']?.toString() ?? 'Cours Inconnu',
+      quizName: json['quizName']?.toString() ?? 'Quiz sans Titre',
+      totalQuestions: json['totalQuestions'] as int? ?? 0,
+      description: json['description']?.toString(),
+      score: parsedScore,
+      isPassed: parsedIsPassed,
     );
   }
 }
 
 class QuizOptionModel {
-  final int id; // OptionsReponse.id (important pour l'envoi de la réponse)
+  final int id; // OptionsReponse.id
   final String text; // OptionsReponse.texte_option
-  final bool? isCorrect; // OptionsReponse.est_correcte (NE PAS envoyer au client pour un quiz en cours)
+  final bool? isCorrect; // OptionsReponse.est_correcte
 
   QuizOptionModel({
     required this.id,
@@ -55,9 +76,9 @@ class QuizOptionModel {
 
   factory QuizOptionModel.fromJson(Map<String, dynamic> json, {bool hideCorrectness = false}) {
     return QuizOptionModel(
-      id: json['id'],
-      text: json['texte_option'],
-      isCorrect: hideCorrectness ? null : json['est_correcte'],
+      id: json['id'] as int? ?? 0, // Fallback pour ID
+      text: json['texte_option']?.toString() ?? 'Option vide',
+      isCorrect: hideCorrectness ? null : (json['est_correcte'] as bool?), // Laisser bool?
     );
   }
 }
@@ -69,7 +90,7 @@ class QuizQuestionModel {
   final int order; // QuestionsQuiz.ordre
   final String? imagePath; // Si une image est associée à la question
   final List<QuizOptionModel> options;
-  final String? explanation; // Explication après réponse (pas dans votre BDD actuelle)
+  final String? explanation; // Explication après réponse
 
   QuizOptionModel? selectedOption; // Pour QuizAttemptScreen & QuizResultScreen
 
@@ -84,27 +105,36 @@ class QuizQuestionModel {
     this.selectedOption,
   });
 
-  factory QuizQuestionModel.fromJson(Map<String, dynamic> json, {bool hideCorrectness = false}) {
+  factory QuizQuestionModel.fromJson(Map<String, dynamic> qJson, {bool hideCorrectness = false}) {
     var optionsList = <QuizOptionModel>[];
-    if (json['ResponseOptions'] != null) {
-      optionsList = (json['ResponseOptions'] as List)
-          .map((o) => QuizOptionModel.fromJson(o, hideCorrectness: hideCorrectness))
+    // La clé du JSON pour les options est "OptionsReponses" d'après vos logs
+    if (qJson['OptionsReponses'] != null && qJson['OptionsReponses'] is List) {
+      optionsList = (qJson['OptionsReponses'] as List<dynamic>)
+          .map((oJson) {
+            if (oJson is Map<String, dynamic>) {
+              return QuizOptionModel.fromJson(oJson, hideCorrectness: hideCorrectness);
+            }
+            return null;
+          })
+          .whereType<QuizOptionModel>()
           .toList();
+    } else {
+      //  print("QuizQuestionModel.fromJson: Clé 'OptionsReponses' non trouvée ou n'est pas une liste pour la question ID ${qJson['id']}");
     }
     return QuizQuestionModel(
-      id: json['id'],
-      questionText: json['texte_question'],
-      typeQuestion: json['type_question'],
-      order: json['ordre'],
-      imagePath: json['image_url_question'], // A ajouter si besoin
+      id: qJson['id'] as int? ?? 0, // Fallback
+      questionText: qJson['texte_question']?.toString() ?? 'Texte de question manquant',
+      typeQuestion: qJson['type_question']?.toString() ?? 'QCM',
+      order: qJson['ordre'] as int? ?? 0, // Fallback
+      imagePath: qJson['image_url_question']?.toString(),
       options: optionsList,
-      explanation: json['explication_reponse'], // A ajouter si besoin
+      explanation: qJson['explication_reponse']?.toString(), // Si vous avez ce champ dans l'API
     );
   }
 }
 
-// Pour prendre un quiz (QuizAttemptScreen) et voir les résultats (QuizResultScreen)
 class QuizAttemptModel {
+  final int? attemptId; // TentativesQuiz.id (nullable car on peut construire un QuizAttemptModel avant soumission)
   final int quizId;
   final int? courseId;
   final String? courseName;
@@ -115,9 +145,9 @@ class QuizAttemptModel {
   final double? score; // score_obtenu
   final bool? isPassed; // calculé
   final DateTime? attemptDate; // date_tentative
-  final int? attemptId; // TentativesQuiz.id
 
   QuizAttemptModel({
+    this.attemptId,
     required this.quizId,
     this.courseId,
     this.courseName,
@@ -128,70 +158,138 @@ class QuizAttemptModel {
     this.score,
     this.isPassed,
     this.attemptDate,
-    this.attemptId,
   });
 
-  // Utilisé pour démarrer une tentative (pas de score, isPassed, attemptDate)
-  // et pour afficher les résultats (tous les champs remplis)
-  factory QuizAttemptModel.fromQuizJson(Map<String, dynamic> json, {bool forTakingQuiz = true}) {
-     // "forTakingQuiz = true" signifie que les bonnes réponses ne sont pas révélées dans les options
+  // Factory pour construire un modèle de tentative à partir des données d'un quiz (avant la tentative)
+  factory QuizAttemptModel.fromQuizJson(Map<String, dynamic> quizJson, {bool forTakingQuiz = true}) {
     var questionsList = <QuizQuestionModel>[];
-    if (json['QuizQuestions'] != null) {
-      questionsList = (json['QuizQuestions'] as List)
-          .map((q) => QuizQuestionModel.fromJson(q, hideCorrectness: forTakingQuiz))
+    // La clé du JSON pour les questions est "QuestionsQuizzes" d'après vos logs
+    if (quizJson['QuestionsQuizzes'] != null && quizJson['QuestionsQuizzes'] is List) {
+      questionsList = (quizJson['QuestionsQuizzes'] as List<dynamic>)
+          .map((qJson) {
+            if (qJson is Map<String, dynamic>) {
+              return QuizQuestionModel.fromJson(qJson, hideCorrectness: forTakingQuiz);
+            }
+            return null;
+          })
+          .whereType<QuizQuestionModel>()
           .toList();
+    } else {
+      print("QuizAttemptModel.fromQuizJson: Clé 'QuestionsQuizzes' non trouvée ou pas une liste dans JSON: ${quizJson['id']}");
     }
+
+    // Déterminer courseName et courseId
+    String? tempCourseName;
+    int? tempCourseId;
+
+    if (quizJson['course'] != null && quizJson['course'] is Map<String,dynamic>) { // Quiz direct du cours
+        tempCourseName = quizJson['course']['titre']?.toString();
+        tempCourseId = quizJson['course']['id'] as int?;
+    } else if (quizJson['lesson'] != null && quizJson['lesson'] is Map<String,dynamic>) { // Quiz de leçon
+        tempCourseId = quizJson['lesson']['cours_id'] as int?; // Directement depuis la leçon
+        if (quizJson['lesson']['courseForLesson'] != null && quizJson['lesson']['courseForLesson'] is Map<String,dynamic>){
+             tempCourseName = quizJson['lesson']['courseForLesson']['titre']?.toString();
+             // Si courseForLesson.id est différent de lesson.cours_id, il y a un problème d'alias ou de structure
+             if (tempCourseId == null) tempCourseId = quizJson['lesson']['courseForLesson']['id'] as int?;
+        }
+    }
+    
+    tempCourseName ??= 'Cours Inconnu';
+
+
     return QuizAttemptModel(
-      quizId: json['id'],
-      courseId: json['cours_id'],
-      courseName: json['Cour']?['titre'] ?? json['Lecon']?['Cour']?['titre'] ?? 'Cours Inconnu',
-      quizName: json['titre'],
-      description: json['description'],
+      // attemptId, score, isPassed, attemptDate sont nulls ici car c'est une nouvelle tentative
+      quizId: quizJson['id'] as int? ?? 0,
+      courseId: tempCourseId ?? (quizJson['cours_id'] as int?), // Fallback sur le cours_id direct du quiz
+      courseName: tempCourseName,
+      quizName: quizJson['titre']?.toString() ?? 'Quiz Sans Titre',
+      description: quizJson['description']?.toString(),
       totalQuestions: questionsList.length,
       questions: questionsList,
-      // Les champs score, isPassed, attemptDate seront remplis par `fromAttemptJson` ou après soumission.
     );
   }
 
-  // Utilisé pour afficher une tentative existante avec ses réponses et son score
-  factory QuizAttemptModel.fromAttemptJson(Map<String, dynamic> attemptJson, Map<String, dynamic> quizJson) {
+  // Factory pour reconstruire un modèle de tentative après l'avoir passée (pour l'écran de résultats)
+  factory QuizAttemptModel.fromAttemptJson(Map<String, dynamic> attemptJson, Map<String, dynamic> quizDetailJson) {
     var questionsList = <QuizQuestionModel>[];
-    if (quizJson['QuizQuestions'] != null) {
-       questionsList = (quizJson['QuizQuestions'] as List).map((qJson) {
-        final questionModel = QuizQuestionModel.fromJson(qJson, hideCorrectness: false); // On montre les bonnes réponses pour la revue
 
-        // Trouver la réponse de l'utilisateur pour cette question dans attemptJson['reponses_utilisateur']
-        // Format supposé de reponses_utilisateur: [{ "question_id": X, "option_id": Y}, ...]
-        final userAnswers = attemptJson['reponses_utilisateur'] as List<dynamic>?;
-        final userAnswerForThisQuestion = userAnswers?.firstWhere(
-            (ans) => ans['question_id'] == questionModel.id,
-            orElse: () => null,
-        );
+    // La clé pour les questions DANS l'objet de détail du quiz (quizDetailJson) est "QuestionsQuizzes"
+    if (quizDetailJson['QuestionsQuizzes'] != null && quizDetailJson['QuestionsQuizzes'] is List) {
+      questionsList = (quizDetailJson['QuestionsQuizzes'] as List<dynamic>).map((qJsonData) {
+        if (qJsonData is Map<String, dynamic>) {
+          final questionModel = QuizQuestionModel.fromJson(qJsonData, hideCorrectness: false); // Afficher les bonnes réponses pour la revue
 
-        if (userAnswerForThisQuestion != null && userAnswerForThisQuestion['option_id'] != null) {
-          questionModel.selectedOption = questionModel.options.firstWhere(
-              (opt) => opt.id == userAnswerForThisQuestion['option_id'],
-              orElse: () => throw Exception('Option not found for question ${questionModel.id}')
-          );
+          final userAnswersInAttempt = attemptJson['reponses_utilisateur'] as List<dynamic>?;
+          final userAnswerForThisQuestion = userAnswersInAttempt?.firstWhere(
+              (ans) => (ans is Map<String, dynamic>) && ans['question_id'] == questionModel.id,
+              orElse: () => null,
+          ) as Map<String, dynamic>?; // Cast l'élément trouvé en Map
+
+          if (userAnswerForThisQuestion != null && userAnswerForThisQuestion['option_id'] != null) {
+            questionModel.selectedOption = questionModel.options.firstWhere(
+                (opt) => opt.id == (userAnswerForThisQuestion['option_id'] as int?), // Cast ici aussi
+                orElse: () {
+                  print('Option avec ID ${userAnswerForThisQuestion['option_id']} non trouvée pour la question ${questionModel.id}');
+                  return QuizOptionModel(id: -1, text:"OPTION INTROUVABLE", isCorrect:false); // Fallback si option non trouvée (ne devrait pas arriver)
+                }
+            );
+          }
+          // Gérer les réponses textuelles si votre quiz les supporte et si elles sont dans `reponses_utilisateur`
+          // if (userAnswerForThisQuestion != null && userAnswerForThisQuestion['answer_text'] != null) {
+          //    questionModel.userTextAnswer = userAnswerForThisQuestion['answer_text']?.toString();
+          // }
+          return questionModel;
         }
-        return questionModel;
-      }).toList();
+        return null;
+      }).whereType<QuizQuestionModel>().toList();
+    } else {
+        print("QuizAttemptModel.fromAttemptJson: 'QuestionsQuizzes' est null ou n'est pas une liste dans quizDetailJson pour quiz ID ${quizDetailJson['id']}");
     }
 
+    // Déterminer courseName et courseId depuis quizDetailJson
+    String? tempCourseName;
+    int? tempCourseId;
+
+    if (quizDetailJson['course'] != null && quizDetailJson['course'] is Map<String,dynamic>) {
+        tempCourseName = quizDetailJson['course']['titre']?.toString();
+        tempCourseId = quizDetailJson['course']['id'] as int?;
+    } else if (quizDetailJson['lesson'] != null && quizDetailJson['lesson'] is Map<String,dynamic>) {
+        tempCourseId = quizDetailJson['lesson']['cours_id'] as int?;
+        if (quizDetailJson['lesson']['courseForLesson'] != null && quizDetailJson['lesson']['courseForLesson'] is Map<String,dynamic>){
+             tempCourseName = quizDetailJson['lesson']['courseForLesson']['titre']?.toString();
+             if (tempCourseId == null) tempCourseId = quizDetailJson['lesson']['courseForLesson']['id'] as int?;
+        }
+    }
+    tempCourseName ??= 'Cours Inconnu';
+    
+    double? seuilReussite;
+    if (quizDetailJson['seuil_reussite_pourcentage'] != null) {
+      if (quizDetailJson['seuil_reussite_pourcentage'] is String) {
+        seuilReussite = double.tryParse(quizDetailJson['seuil_reussite_pourcentage'] as String);
+      } else if (quizDetailJson['seuil_reussite_pourcentage'] is num) {
+        seuilReussite = (quizDetailJson['seuil_reussite_pourcentage'] as num).toDouble();
+      }
+    }
+
+    double? scoreObtenu = (attemptJson['score_obtenu'] as num?)?.toDouble();
+    bool? estPasse;
+    if (scoreObtenu != null && seuilReussite != null) {
+      estPasse = scoreObtenu >= seuilReussite;
+    }
+
+
     return QuizAttemptModel(
-      attemptId: attemptJson['id'],
-      quizId: attemptJson['quiz_id'],
-      courseId: quizJson['cours_id'], // Ou prendre de quizJson['Lecon']['cours_id']
-      courseName: quizJson['Cour']?['titre'] ?? quizJson['Lecon']?['Cour']?['titre'] ?? 'Cours Inconnu',
-      quizName: quizJson['titre'],
-      description: quizJson['description'],
+      attemptId: attemptJson['id'] as int?,
+      quizId: attemptJson['quiz_id'] as int? ?? 0,
+      courseId: tempCourseId ?? (quizDetailJson['cours_id'] as int?),
+      courseName: tempCourseName,
+      quizName: quizDetailJson['titre']?.toString() ?? 'Quiz Sans Titre',
+      description: quizDetailJson['description']?.toString(),
       totalQuestions: questionsList.length,
       questions: questionsList,
-      score: (attemptJson['score_obtenu'] as num?)?.toDouble(),
-      isPassed: attemptJson['score_obtenu'] != null && quizJson['seuil_reussite_pourcentage'] != null
-        ? ((attemptJson['score_obtenu'] as num) >= (quizJson['seuil_reussite_pourcentage'] as num))
-        : null,
-      attemptDate: DateTime.parse(attemptJson['date_tentative']),
+      score: scoreObtenu,
+      isPassed: estPasse, // Utiliser la valeur calculée
+      attemptDate: attemptJson['date_tentative'] != null ? DateTime.tryParse(attemptJson['date_tentative'].toString()) : null,
     );
   }
 }

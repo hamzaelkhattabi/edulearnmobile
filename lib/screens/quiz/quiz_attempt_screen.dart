@@ -33,6 +33,11 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> {
     _pageController = PageController();
     // Initialiser _selectedOptionAnswers si des réponses ont été sauvegardées (pour "reprendre un quiz")
     // Pour l'instant, on commence un nouveau quiz à chaque fois.
+    if (widget.quizAttemptInput.questions.isEmpty) { // <<< VÉRIFICATION IMPORTANTE
+      print("ERREUR QuizAttemptScreen: Le quiz reçu n'a AUCUNE question !");
+      // Gérer ce cas : afficher un message, pop la route ?
+      // Pour l'instant, on va laisser le build planter pour voir l'erreur, mais c'est ici le problème.
+    }
   }
 
   @override
@@ -178,6 +183,19 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> {
   @override
   Widget build(BuildContext context) {
     // final currentQuestion = widget.quizAttemptInput.questions[_currentQuestionIndex];
+    if (widget.quizAttemptInput.questions.isEmpty) { // Sécurité supplémentaire
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.quizAttemptInput.quizName)),
+        body: Center(
+          child: Text(
+            "Ce quiz ne contient actuellement aucune question.",
+            style: GoogleFonts.poppins(fontSize: 16, color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    final currentQuestion = widget.quizAttemptInput.questions[_currentQuestionIndex];
 
     return Scaffold(
       backgroundColor: eduLearnBackground,
