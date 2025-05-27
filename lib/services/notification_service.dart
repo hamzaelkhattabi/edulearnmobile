@@ -3,9 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/notification_model.dart'; // Renommé de notification_item.dart
 import '../utils/api_constants.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 
 class NotificationService {
   final _storage = const FlutterSecureStorage();
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   Future<String?> _getToken() async {
     return await _storage.read(key: 'authToken');
@@ -39,4 +42,29 @@ class NotificationService {
   // Optionnel: Marquer comme lu
   // Future<void> markAsRead(String notificationId) async { ... }
   // Future<void> markAllAsRead() async { ... }
+
+  Future<void> initFirebaseMessaging() async {
+    // Demander la permission
+    await _fcm.requestPermission();
+
+    // Obtenir le token FCM
+    final token = await _fcm.getToken();
+    print("🔐 FCM Token : $token");
+
+    // Tu peux envoyer ce token à ton backend ici si besoin
+    // await sendTokenToBackend(token);
+
+    // Écoute des messages reçus quand l'app est ouverte
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("📩 Notification reçue (foreground) : ${message.notification?.title}");
+      // Tu peux aussi déclencher une notif locale ici avec flutter_local_notifications
+    });
+
+    // Quand l'utilisateur clique sur une notif (app en background ou terminée)
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("🟢 Notification ouverte : ${message.notification?.title}");
+      // Naviguer vers une page spécifique par exemple
+    });
+  }
+
 }

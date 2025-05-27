@@ -48,6 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           // Mettre à jour l'état global d'authentification via le Provider
           Provider.of<AuthProvider>(context, listen: false).loginSuccess(user, token);
+          print("DEBUG: isAuthenticated = ${Provider.of<AuthProvider>(context, listen: false).isAuthenticated}");
+
 
           // Le SnackBar est optionnel ici, car l'écran va changer.
           // Vous pourriez vouloir afficher le message de bienvenue sur HomeScreen.
@@ -93,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 height: 180, // Ajustez si nécessaire
                 child: Image.asset(
-                  'assets/login_illustration.png', // Assurez-vous que cet asset existe et est déclaré dans pubspec.yaml
+                  'assets/profile_avatar.png', // Assurez-vous que cet asset existe et est déclaré dans pubspec.yaml
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     // Affiche une icône en cas d'erreur de chargement de l'image

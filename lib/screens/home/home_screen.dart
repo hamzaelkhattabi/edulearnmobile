@@ -9,6 +9,7 @@ import '../../models/user_model.dart';
 import '../../services/course_service.dart';
 import '../../services/category_service.dart';
 import '../../services/auth_service.dart'; // Utilisé pour charger l'utilisateur si pas via Provider
+import '../../services/notification_service.dart';
 import '../../utils/api_constants.dart'; // Pour construire les URLs d'images
 import '../../utils/app_colors.dart' as app_colors; // Pour éviter les conflits de noms
 
@@ -41,10 +42,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _subjects = ["Python", "Graphic Design", "Development", "Marketing", "Business"];
   int _selectedSubjectIndex = -1; // -1 signifie aucune sélection
 
+  final notificationService = NotificationService();
+
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    notificationService.initFirebaseMessaging();
   }
 
   Future<void> _loadInitialData() async {
@@ -126,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {

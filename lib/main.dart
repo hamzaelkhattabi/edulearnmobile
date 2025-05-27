@@ -1,5 +1,9 @@
+/*
+
 // lib/main.dart
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Pour le formatage des dates en FR
@@ -20,10 +24,30 @@ import 'models/lesson_model.dart'; // Pour onGenerateRoute
 import 'utils/app_colors.dart'; // Vos couleurs
 import 'utils/api_constants.dart'; // Vos constantes (KDefaultBorderRadius y est défini implicitement par usage)
 
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Important si vous faites des appels asynchrones avant runApp
+  await Firebase.initializeApp();
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print("🔄 Notification cliquée : ${message.data}");
+    navigatorKey.currentState?.pushNamed('/notifications'); // ou autre route
+  });
+
   await initializeDateFormatting('fr_FR', null); // Initialiser les locales pour intl
+
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  FlutterLocalNotificationsPlugin();
+
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'high_importance_channel', // ID du canal
+    'Notifications importantes', // Nom visible
+    importance: Importance.high,
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
 
   runApp(
     MultiProvider(
@@ -36,6 +60,8 @@ void main() async {
     ),
   );
 }
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -145,6 +171,7 @@ class MyApp extends StatelessWidget {
     );
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'EduLearn App',
       debugShowCheckedModeBanner: false,
       theme: eduLearnTheme, // Appliquer le thème défini
@@ -262,6 +289,282 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+*/
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+import 'providers/auth_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/notification/notifications_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/quiz/quiz_list_screen.dart';
+import 'screens/courses/course_details_screen.dart';
+import 'screens/courses/chapter_view_screen.dart';
+
+import 'models/course_model.dart';
+import 'models/lesson_model.dart';
+
+import 'utils/app_colors.dart';
+import 'utils/api_constants.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'Notifications importantes',
+  description: 'Ce canal est utilisé pour les notifications importantes.',
+  importance: Importance.high,
+);
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await initializeDateFormatting('fr_FR', null);
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print("\u{1F4E9} Notification reçue (foreground) : ${message.notification?.title}");
+
+    flutterLocalNotificationsPlugin.show(
+      message.notification.hashCode,
+      message.notification?.title,
+      message.notification?.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          icon: '@mipmap/ic_launcher',
+        ),
+      ),
+    );
+  });
+
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print("\u{1F504} Notification cliquée : ${message.data}");
+    navigatorKey.currentState?.pushNamed('/notifications');
+  });
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final baseTextTheme = Theme.of(context).textTheme;
+
+    final ThemeData eduLearnTheme = ThemeData(
+      primaryColor: eduLearnPrimary,
+      scaffoldBackgroundColor: eduLearnBackground,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: eduLearnPrimary,
+        primary: eduLearnPrimary,
+        secondary: eduLearnAccent,
+        error: eduLearnError,
+        background: eduLearnBackground,
+      ),
+      textTheme: GoogleFonts.poppinsTextTheme(baseTextTheme).copyWith(
+        displayLarge: GoogleFonts.poppins(textStyle: baseTextTheme.displayLarge, fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: eduLearnTextBlack),
+        titleMedium: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: eduLearnTextBlack),
+        bodyLarge: GoogleFonts.poppins(fontSize: 16, color: eduLearnTextBlack),
+        bodyMedium: GoogleFonts.poppins(fontSize: 14, color: eduLearnTextGrey),
+        labelLarge: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: eduLearnBackground,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: eduLearnTextBlack),
+        titleTextStyle: GoogleFonts.poppins(
+            color: eduLearnTextBlack, fontWeight: FontWeight.w600, fontSize: 18),
+        centerTitle: true,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: eduLearnAccent.withOpacity(0.5),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+          borderSide: BorderSide(color: eduLearnPrimary.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+          borderSide: const BorderSide(color: eduLearnPrimary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+          borderSide: const BorderSide(color: eduLearnError, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+          borderSide: const BorderSide(color: eduLearnError, width: 2.0),
+        ),
+        labelStyle: const TextStyle(color: eduLearnTextGrey),
+        hintStyle: const TextStyle(color: eduLearnTextLightGrey),
+        prefixIconColor: eduLearnPrimary,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: eduLearnPrimary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kDefaultBorderRadius),
+          ),
+          textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: eduLearnPrimary,
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: eduLearnAccent.withOpacity(0.7),
+        labelStyle: const TextStyle(color: eduLearnPrimary, fontWeight: FontWeight.w500),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: eduLearnPrimary.withOpacity(0.3), width: 0.8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        selectedColor: eduLearnPrimary.withOpacity(0.2),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 2.0,
+        shadowColor: Colors.grey.withOpacity(0.2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(kDefaultBorderRadius)),
+        color: eduLearnCardBg,
+      ),
+    );
+
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      title: 'EduLearn App',
+      debugShowCheckedModeBanner: false,
+      theme: eduLearnTheme,
+      home: Consumer<AuthProvider>(
+        builder: (ctx, auth, child) {
+          if (!auth.isAuthAttempted) {
+            return FutureBuilder(
+              future: auth.tryAutoLogin(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    backgroundColor: eduLearnBackground,
+                    body: Center(child: CircularProgressIndicator(color: eduLearnPrimary)),
+                  );
+                }
+                return auth.isAuthenticated ? const HomeScreen() : const LoginScreen();
+              },
+            );
+          } else {
+            return auth.isAuthenticated ? const HomeScreen() : const LoginScreen();
+          }
+        },
+      ),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/quiz_list': (context) => const QuizListScreen(),
+      },
+      onGenerateRoute: (settings) {
+        print("onGenerateRoute: Navigating to \${settings.name}");
+        if (settings.name == '/course_details') {
+          final args = settings.arguments;
+          if (args is CourseModel) {
+            return MaterialPageRoute(
+              builder: (context) => CourseDetailsScreen(courseInput: args),
+              settings: settings,
+            );
+          } else if (args is int) {
+            print("Error: /course_details attendait CourseModel mais a reçu un int. Gérer ce cas.");
+          }
+          return _errorRoute(settings.name);
+        }
+
+        if (settings.name == '/chapter_view' || settings.name == '/lesson_view') {
+          final args = settings.arguments;
+          if (args is Map<String, dynamic>) {
+            final course = args['course'] as CourseModel?;
+            final chapter = args['chapter'] as LessonModel?;
+            final allChapters = args['allChaptersInCourse'] as List<LessonModel>?;
+            final currentIndex = args['currentChapterIndex'] as int?;
+            final enrollmentId = args['enrollmentId'] as int?;
+
+            if (course != null && chapter != null && allChapters != null && currentIndex != null) {
+              return MaterialPageRoute(
+                builder: (context) => ChapterViewScreen(
+                  course: course,
+                  chapter: chapter,
+                  allChaptersInCourse: allChapters,
+                  currentChapterIndex: currentIndex,
+                  enrollmentId: enrollmentId,
+                ),
+                settings: settings,
+              );
+            }
+          }
+          return _errorRoute(settings.name);
+        }
+
+        if (settings.name == '/quiz_list_for_course') {
+          final courseId = settings.arguments as int?;
+          return MaterialPageRoute(
+            builder: (context) => QuizListScreen(courseId: courseId),
+            settings: settings,
+          );
+        }
+
+        return _errorRoute(settings.name);
+      },
+    );
+  }
+
+  static MaterialPageRoute _errorRoute(String? routeName) {
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Text("Route non trouvée ou arguments invalides pour: ${routeName ?? 'Unknown'}"),
+        ),
+      ),
+    );
+  }
+}
+
+double kDefaultBorderRadius = 12.0;
+
 
 // Définition pour le thème si vous souhaitez accéder via Theme.of(context).extension<MyThemeExtensions>()
 // @immutable

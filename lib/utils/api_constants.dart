@@ -2,7 +2,7 @@
 class ApiConstants {
   // !! IMPORTANT !!
   // Pour Android Emulator sur la même machine que le serveur:
-  static const String baseUrl = 'http://localhost:3000/api';
+  static const String baseUrl = 'http://192.168.11.107:3000/api';
   // Pour iOS Simulator sur la même machine ou appareil physique connecté au même réseau:
   // static const String baseUrl = 'http://VOTRE_IP_LOCALE_MACHINE:3000/api';
   // Exemple: static const String baseUrl = 'http://192.168.1.100:3000/api';
@@ -13,7 +13,7 @@ class ApiConstants {
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
   static const String getMeEndpoint = '/auth/me';
-
+//-----
   // --- Categories ---
   static const String categoriesEndpoint = '/categories';
 
